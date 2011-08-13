@@ -1,0 +1,52 @@
+//Tiny Parser Generator v1.3
+//Copyright © Herre Kuijpers 2008-2012
+
+// By default the TextHighlighter is not generated.
+// Set its Generate attribute to true
+<% @TextHighlighter Generate="True" %>
+// the Generate parameter specifies wether the file
+// should be generated. By default this is set to True
+<% @Parser Generate="True" %>
+<% @Scanner Generate="True" %>
+
+<% @ParseTree Generate="True" %>
+
+<% @TinyPG Namespace="Mizu.Parser" Language="C#" OutputPath="C:\\Users\\alex\\Documents\\visual studio 2010\\Projects\\Mizu\\Mizu.Parser\\" %>
+
+
+// highlight numbers in red and symbols in blue
+[Color(255, 0, 0)] NUMBER -> @"[0-9]+"; 
+
+[Color(0, 0, 255)] PLUSMINUS -> @"(\+|-)"; 
+[Color(0, 0, 255)] MULTDIV -> @"\*|/"; 
+[Color(0, 0, 255)] BROPEN -> @"\("; 
+[Color(0, 0, 255)] BRCLOSE -> @"\)";
+EOF -> @"^\s*$";
+IDENTIFIER -> @"[a-zA-Z_][a-zA-Z0-9_]*";
+SET -> @"\`";
+WHITESPACE       -> @"\s+";
+OPENBR -> @"\[";
+CLOSEBR -> @"\]";
+PERIOD -> @"\.";
+STATEMENTSEP -> @"\|";
+QUESTION -> @"\?";
+COLON -> @"\:";
+COMMAND -> @"ABS";
+ABS -> @"\@";
+SIN -> @"\$";
+COS -> @"\&";
+TAN -> @"\#";
+
+
+Start -> (Statements)?;
+Statements -> Statement*;
+Statement -> (EvalStatement | VarStatement | PrintStatement | MathCMDStatement) (EOF|STATEMENTSEP+ (EOF)?);
+EvalStatement -> QUESTION IDENTIFIER COLON AddExpr;
+VarStatement -> IDENTIFIER SET (NUMBER|OPENBR NUMBER PERIOD PERIOD NUMBER CLOSEBR);
+PrintStatement -> PERIOD (IDENTIFIER?|SET (AddExpr|MathCMDStatement));
+MathCMDStatement -> (ABS|SIN|TAN) BROPEN (IDENTIFIER|NUMBER) BRCLOSE;
+
+//From the tinypg article.
+AddExpr     -> MultExpr (PLUSMINUS MultExpr)*;
+MultExpr    -> Atom (MULTDIV Atom)*;
+Atom        -> NUMBER|IDENTIFIER|BROPEN AddExpr BRCLOSE;
