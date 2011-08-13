@@ -159,7 +159,7 @@ namespace Mizu
                                             var lowNum = stmt.Nodes[i + 2];
                                             var highNum = stmt.Nodes[i + 5];
 
-                                           
+
 
                                             LocalBuilderEx local = new LocalBuilderEx();
 
@@ -170,7 +170,7 @@ namespace Mizu
                                             local.Base = ILgen.DeclareLocal(typeof(int));
                                             ILgen.Emit(OpCodes.Ldc_I4, local.LoopLow); //Sets the number
                                             ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base); //Assigns the number to the variable.
-                                           
+
                                             ILgen.MarkLabel(looplab);
                                             //this is where the IL will execute.
 
@@ -183,7 +183,6 @@ namespace Mizu
                                                 ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base);
                                             };
 
-                                            
 
                                             local.Name = token.Token.Text;
                                             local.Type = LocalType.LoopVar;
@@ -216,6 +215,62 @@ namespace Mizu
                         {
                             ILgen.EmitWriteLine(locals.Find(it => it.Name == outpt.Token.Text).Base);
                         }
+                        break;
+                    }
+                case TokenType.MathCMDStatement:
+                    {
+                        var cmd = stmt.Nodes[0];
+                        var input = stmt.Nodes[2];
+                        var local = locals.Find(it => it.Name == input.Token.Text);
+                        if (local != null)
+                        {
+                            switch (cmd.Token.Type)
+                            {
+                                case TokenType.SIN:
+                                    {
+                                        ILgen.Emit(OpCodes.Ldloc, local.Base.LocalIndex);
+                                        ILgen.Emit(OpCodes.Call, typeof(Math).GetMethod("Sin"));
+                                        ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base);
+                                        break;
+                                    }
+                                case TokenType.ABS:
+                                    {
+                                        ILgen.Emit(OpCodes.Ldloc, local.Base.LocalIndex);
+                                        ILgen.Emit(OpCodes.Call, typeof(Math).GetMethod("Abs", new Type[] { typeof(int) }));
+                                        ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base);
+                                        break;
+                                    }
+                                case TokenType.TAN:
+                                    {
+                                        ILgen.Emit(OpCodes.Ldloc, local.Base.LocalIndex);
+                                        ILgen.Emit(OpCodes.Call, typeof(Math).GetMethod("Tan"));
+                                        ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base);
+                                        break;
+                                    }
+                                case TokenType.COS:
+                                    {
+                                        ILgen.Emit(OpCodes.Ldloc, local.Base.LocalIndex);
+                                        ILgen.Emit(OpCodes.Call, typeof(Math).GetMethod("Cos"));
+                                        ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base);
+                                        break;
+                                    }
+                            }
+                        }
+                        else
+                        {
+                            //Report an error and stop compile process.
+                            err = true;
+                            Console.Error.WriteLine("'{0}' doesn't exist!", input.Token.Text);
+                            break;
+                        }
+
+                        break;
+                    }
+                default:
+                    {
+                        //Report an error and stop compile process.
+                        err = true;
+                        Console.Error.WriteLine("Unsupported statement: {0}", stmt.ToString());
                         break;
                     }
             }
