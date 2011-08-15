@@ -16,16 +16,16 @@ Tools
 -----
 I used the following tools in my creation of the compiler.
 
-ILSpy (by the SharpDevelop team) for viewing the generated IL and viewing the **C#** equalivent.
-TinyPG for generating the parser/scanner. Search http://codeproject.com for it.
-PEVerify (included with Visual Studio) for debugging IL problems. (Especially during Invalid CLR program exceptions).
++   ILSpy (by the SharpDevelop team) for viewing the generated IL and viewing the **C#** equalivent.
++   TinyPG for generating the parser/scanner. Search http://codeproject.com for it.
++   PEVerify (included with Visual Studio) for debugging IL problems. (Especially during Invalid CLR program exceptions).
 
 Syntax
 ------
 
 Since this is my first true programming language and I didn't expect it to have any actual use, the syntax is weird.
 
-> a``5|b``[1..10]|?c:a+b|.c
+>	a`5|b`[1..10]|?c:a+b|.c
 
 I'll explain.
 
