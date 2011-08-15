@@ -25,7 +25,7 @@ Syntax
 
 Since this is my first true programming language and I didn't expect it to have any actual use, the syntax is weird.
 
-> a`5|b`[1..10]|?c:a+b|.c
+> a``5|b``[1..10]|?c:a+b|.c
 
 I'll explain.
 
