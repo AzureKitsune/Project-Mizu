@@ -1,0 +1,1 @@
+call %windir%\Microsoft.NET\Framework\V4.0.30319\jsc /target:library Mizu.Lib.Evaluator.js

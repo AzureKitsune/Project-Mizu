@@ -13,6 +13,7 @@ namespace Mizu
     {
         static void Main(string[] args)
         {
+            //Mizu.Lib.Evaluator.Evaluator.Eval("var a=5;(2+2)");
 
             Console.WriteLine("Mizu Compiler v" + Assembly.GetExecutingAssembly().GetName().Version.ToString());
             if (args.Length >= 2)
@@ -63,16 +64,21 @@ namespace Mizu
 
             //Declares the assembly and the entypoint
             var name = new AssemblyName(output.Name.Replace(output.Extension,""));
-            AssemblyBuilder ab = AppDomain.CurrentDomain.DefineDynamicAssembly(name,AssemblyBuilderAccess.Save);
+            AssemblyBuilder ab = AppDomain.CurrentDomain.DefineDynamicAssembly(name,AssemblyBuilderAccess.Save,output.DirectoryName);
+           
+
             ModuleBuilder mb = ab.DefineDynamicModule(name.Name,name.Name + ".exe");
             TypeBuilder tb = mb.DefineType("App");
             MethodBuilder entrypoint = tb.DefineMethod("Main", MethodAttributes.Public | MethodAttributes.Static);
 
-            var ILgen = entrypoint.GetILGenerator(1024); //gets the IL generator
+            var ILgen = entrypoint.GetILGenerator(3072); //gets the IL generator
 
-
+            
             List<LocalBuilderEx> locals = new List<LocalBuilderEx>(); //A list to hold variables.
 
+            ILgen.BeginExceptionBlock();
+
+            // Generate body IL
             bool err = false;
             foreach (Mizu.Parser.ParseNode statement in statements.Nodes)
             {
@@ -107,6 +113,11 @@ namespace Mizu
                 }
             }
 
+            ILgen.BeginCatchBlock(typeof(Exception));
+
+            ILgen.Emit(OpCodes.Rethrow);
+
+            ILgen.EndExceptionBlock(); 
 
 
             ILgen.Emit(OpCodes.Ret); //Finishes the statement by calling return
@@ -207,14 +218,86 @@ namespace Mizu
                     }
                 case TokenType.PrintStatement:
                     {
-
                         ///Generates output by making a print statement.
                         var period = stmt.Nodes[0];
                         var outpt = stmt.Nodes[1];
                         if (outpt.Token.Type == TokenType.IDENTIFIER)
                         {
-                            ILgen.EmitWriteLine(locals.Find(it => it.Name == outpt.Token.Text).Base);
+                            ILgen.Emit(OpCodes.Ldloc, locals.Find(it => it.Name == outpt.Token.Text).Base);
+                            ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] { typeof(string) }));
+                            //ILgen.Emit(OpCodes.Pop);
                         }
+                        break;
+                    }
+                case TokenType.EvalStatement:
+                    {
+                        var identifier = stmt.Nodes[1];
+                        var expr = stmt.Nodes[3];
+
+                        var exprstr = "";
+                        bool localsadded = false;
+
+
+                        List<LocalBuilder> tmplocals = new List<LocalBuilder>();
+
+                        foreach (LocalBuilderEx lc in locals)
+                        {
+
+                            ILgen.Emit(OpCodes.Ldstr, "var " + lc.Name + "={0}");
+                            ILgen.Emit(OpCodes.Ldloc, (LocalBuilder)lc.Base);
+                            ILgen.Emit(OpCodes.Box, typeof(int));
+                            ILgen.Emit(OpCodes.Castclass, typeof(object));
+
+                            ILgen.Emit(OpCodes.Call,
+                                typeof(System.String).GetMethod("Format",
+                                new Type[] { typeof(string), typeof(string) }));
+
+                            LocalBuilder lb = ILgen.DeclareLocal(typeof(string));
+                            ILgen.Emit(OpCodes.Stloc, lb);
+
+                            tmplocals.Add(lb);
+
+                            localsadded = true;
+                        }
+
+                        if (localsadded)
+                        {
+                            int t = 0;
+                            foreach (LocalBuilder tmploc in tmplocals)
+                            {
+                                if (t == 2)
+                                {
+                                    ILgen.Emit(OpCodes.Call,
+                                       typeof(System.String).GetMethod("Concat",
+                                       new Type[] { typeof(string), typeof(string) }));
+                                    t = 0;
+                                }
+                                ILgen.Emit(OpCodes.Ldloc, tmploc);
+                                t += 1;
+                            }
+                        }
+
+
+                        exprstr += GenerateExprStr(expr);
+                        ILgen.Emit(OpCodes.Ldstr, exprstr);
+
+
+                        ILgen.Emit(OpCodes.Ldstr, ";");
+
+                        ILgen.Emit(OpCodes.Call,
+    typeof(System.String).GetMethod("Concat",
+    new Type[] { typeof(string), typeof(string) }));
+
+                        ILgen.Emit(OpCodes.Call, typeof(Mizu.Lib.Evaluator.Evaluator).GetMethod("Eval"));
+
+                        LocalBuilderEx local = new LocalBuilderEx();
+                        local.Base = ILgen.DeclareLocal(typeof(string)); //Sets the number
+                        ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base); //Assigns the number to the variable.
+
+                        local.Name = identifier.Token.Text;
+                        local.Type = LocalType.Var;
+
+                        locals.Add(local); //Remembers the variable. 
                         break;
                     }
                 case TokenType.MathCMDStatement:
@@ -275,6 +358,15 @@ namespace Mizu
                     }
             }
             err = false;
+        }
+        static string GenerateExprStr(ParseNode expr)
+        {
+            string res = expr.Token.Text;
+            foreach (ParseNode pn in expr.Nodes)
+            {
+                res += GenerateExprStr(pn);
+            }
+            return res;
         }
     }
 }
