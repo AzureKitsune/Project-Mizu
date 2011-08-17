@@ -21,73 +21,82 @@ namespace Mizu
         {
             //Mizu.Lib.Evaluator.Evaluator.Eval("var a=5;(2+2)");
 
-            Console.WriteLine("Mizu Compiler v" + Assembly.GetExecutingAssembly().GetName().Version.ToString());
-            if (args.Length >= 2)
+            try
             {
-                if (System.IO.File.Exists(args[0]))
+                Console.WriteLine("Mizu Compiler v" + Assembly.GetExecutingAssembly().GetName().Version.ToString());
+                if (args.Length >= 2)
                 {
-                    var info  = new FileInfo(args[0]);
-                    Console.WriteLine("Parsing: " + info.Name);
-
-
-                    var scanner = new Mizu.Parser.Scanner();
-                    var parser = new Mizu.Parser.Parser(scanner);
-
-                    code = File.ReadAllText(args[0]);
-
-                    var parsetree = parser.Parse(code);
-                    if (parsetree.Errors.Count > 0)
+                    if (System.IO.File.Exists(args[0]))
                     {
-                        foreach (Mizu.Parser.ParseError err in parsetree.Errors)
+                        var info = new FileInfo(args[0]); //Loads info on the input file.
+                        Console.WriteLine("Parsing: " + info.Name);
+
+
+                        var scanner = new Mizu.Parser.Scanner(); //Makes a scanner.
+                        var parser = new Mizu.Parser.Parser(scanner); //Makes a parser
+
+                        code = File.ReadAllText(args[0]); //Reads all the code.
+
+                        var parsetree = parser.Parse(code); //Parse the code.
+                        if (parsetree.Errors.Count > 0)
                         {
-                            Console.Error.WriteLine("{0}: {1} - {2},{3}", err.Message, err.Position, err.Line, err.Column);
-                            return;
+                            foreach (Mizu.Parser.ParseError err in parsetree.Errors) //Report all errors.
+                            {
+                                Console.Error.WriteLine("{0}: {1} - {2},{3}", err.Message, err.Position, err.Line, err.Column);
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            var output = new FileInfo(args[1]); //Get info on the future output file.
+
+                            Console.WriteLine("Compiling: {0} -> {1}", info.Name, output.Name);
+
+                            if (args.Length > 2)
+                            {
+                                for (int i = 2; i < args.Length; i++)
+                                {
+                                    switch (args[i].ToLower())
+                                    {
+                                        case "/debug":
+                                            {
+                                                if (!IsDebug)
+                                                    Console.WriteLine("Emitting debugging information.");
+
+                                                IsDebug = true;
+                                                break;
+                                            }
+                                        case "/invalid":
+                                            {
+                                                if (!IsInvalid)
+                                                    Console.WriteLine("Executable will be invalid on purpose.");
+
+                                                IsInvalid = true;
+                                                break;
+                                            }
+                                    }
+                                }
+                            }
+
+
+                            Compile(parsetree, info, output); //Start the compiler process.
                         }
                     }
                     else
                     {
-                        var output = new FileInfo(args[1]);
-
-                        Console.WriteLine("Compiling: {0} -> {1}", info.Name, output.Name);
-
-                        if (args.Length > 2)
-                        {
-                            for (int i = 2; i < args.Length; i++)
-                            {
-                                switch (args[i].ToLower())
-                                {
-                                    case "/debug":
-                                        {
-                                            if (!IsDebug)
-                                                Console.WriteLine("Emitting debugging information.");
-
-                                            IsDebug = true;
-                                            break;
-                                        }
-                                    case "/invalid":
-                                        {
-                                            if (!IsInvalid)
-                                                Console.WriteLine("Executable will be invalid on purpose.");
-
-                                            IsInvalid = true;
-                                            break;
-                                        }
-                                }
-                            }
-                        }
-
-
-                        Compile(parsetree, info, output);
+                        Console.Error.WriteLine("Input file doesn't exist.");
+                        return;
                     }
                 }
                 else
                 {
-                    Console.Error.WriteLine("Input file doesn't exist.");
+                    Console.WriteLine("mizu <input file> <output file> <switchs?>");
                 }
             }
-            else
+            catch (Exception ex)
             {
-                Console.WriteLine("mizu <input file> <output file>");
+                Console.Error.WriteLine(ex.ToString());
+                return;
             }
         }
         static void Compile(Mizu.Parser.ParseTree tree, FileInfo input, FileInfo output)
@@ -111,7 +120,7 @@ namespace Mizu
                 ab.SetCustomAttribute(db_builder);
             }
 
-
+            //Defines main module.
             ModuleBuilder mb = ab.DefineDynamicModule(name.Name, name.Name + ".exe", IsDebug);
 
             if (IsDebug)
@@ -120,21 +129,21 @@ namespace Mizu
                 doc = mb.DefineDocument(input.FullName, Guid.Empty, Guid.Empty, Guid.Empty);
             }
 
-            TypeBuilder tb = mb.DefineType("App");
-            MethodBuilder entrypoint = tb.DefineMethod("Main", MethodAttributes.Public | MethodAttributes.Static);
+            TypeBuilder tb = mb.DefineType("App"); //Defines main type.
+            MethodBuilder entrypoint = tb.DefineMethod("Main", MethodAttributes.Public | MethodAttributes.Static); //Makes the main method.
 
             var ILgen = entrypoint.GetILGenerator(3072); //gets the IL generator
 
             
             List<LocalBuilderEx> locals = new List<LocalBuilderEx>(); //A list to hold variables.
 
-            ILgen.BeginExceptionBlock();
+            ILgen.BeginExceptionBlock(); //Start a try statement.
 
             // Generate body IL
             bool err = false;
             foreach (Mizu.Parser.ParseNode statement in statements.Nodes)
             {
-                //Iterate though the statements
+                //Iterate though the statements, generating IL.
                 var basestmt = statement.Nodes[0];
                 HandleStatement(basestmt, ILgen, ref locals, out err);
                 if (err == true)
@@ -146,7 +155,7 @@ namespace Mizu
             if (loops.Count > 0)
             {
                 int i = loops.Count -1;
-                while(i != -1)
+                while(i != -1) //Iterates through any loops backwards, closing all of the opened loops.
                 {
                     var lastloop = loops[i];
                     if (lastloop != null)
@@ -165,14 +174,14 @@ namespace Mizu
                 }
             }
 
-            ILgen.BeginCatchBlock(typeof(Exception));
+            ILgen.BeginCatchBlock(typeof(Exception)); //Ends the try statement and starts the catch section.
 
-            ILgen.Emit(OpCodes.Rethrow);
+            ILgen.Emit(OpCodes.Rethrow); //Rethrows the exception
 
-            ILgen.EndExceptionBlock(); 
+            ILgen.EndExceptionBlock();  //Ends the catch section.
 
 
-            if (!IsInvalid) ILgen.Emit(OpCodes.Ret); //Finishes the statement by calling return
+            if (!IsInvalid) ILgen.Emit(OpCodes.Ret); //Finishes the statement by calling return. If a invalid exe is wanted, it omits this statement.
 
             ab.SetEntryPoint(entrypoint); //Sets entry point
 
