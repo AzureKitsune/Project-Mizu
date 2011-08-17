@@ -6,11 +6,17 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.IO;
 using Mizu.Parser;
+using System.Diagnostics;
+using System.Diagnostics.SymbolStore;
 
 namespace Mizu
 {
     class Program
     {
+        static bool IsDebug = false;
+        static bool IsInvalid = false; //To generate a invalid exe.
+        static ISymbolDocumentWriter doc = null; //Debug info from  -> http://blogs.msdn.com/b/jmstall/archive/2005/02/03/366429.aspx
+        static string code = null;
         static void Main(string[] args)
         {
             //Mizu.Lib.Evaluator.Evaluator.Eval("var a=5;(2+2)");
@@ -27,7 +33,7 @@ namespace Mizu
                     var scanner = new Mizu.Parser.Scanner();
                     var parser = new Mizu.Parser.Parser(scanner);
 
-                    string code = File.ReadAllText(args[0]);
+                    code = File.ReadAllText(args[0]);
 
                     var parsetree = parser.Parse(code);
                     if (parsetree.Errors.Count > 0)
@@ -44,7 +50,34 @@ namespace Mizu
 
                         Console.WriteLine("Compiling: {0} -> {1}", info.Name, output.Name);
 
-                        Compile(parsetree, output);
+                        if (args.Length > 2)
+                        {
+                            for (int i = 2; i < args.Length; i++)
+                            {
+                                switch (args[i].ToLower())
+                                {
+                                    case "/debug":
+                                        {
+                                            if (!IsDebug)
+                                                Console.WriteLine("Emitting debugging information.");
+
+                                            IsDebug = true;
+                                            break;
+                                        }
+                                    case "/invalid":
+                                        {
+                                            if (!IsInvalid)
+                                                Console.WriteLine("Executable will be invalid on purpose.");
+
+                                            IsInvalid = true;
+                                            break;
+                                        }
+                                }
+                            }
+                        }
+
+
+                        Compile(parsetree, info, output);
                     }
                 }
                 else
@@ -57,7 +90,7 @@ namespace Mizu
                 Console.WriteLine("mizu <input file> <output file>");
             }
         }
-        static void Compile(Mizu.Parser.ParseTree tree, FileInfo output)
+        static void Compile(Mizu.Parser.ParseTree tree, FileInfo input, FileInfo output)
         {
             var start = tree.Nodes[0];
             var statements = start.Nodes[0];
@@ -65,9 +98,28 @@ namespace Mizu
             //Declares the assembly and the entypoint
             var name = new AssemblyName(output.Name.Replace(output.Extension,""));
             AssemblyBuilder ab = AppDomain.CurrentDomain.DefineDynamicAssembly(name,AssemblyBuilderAccess.Save,output.DirectoryName);
-           
 
-            ModuleBuilder mb = ab.DefineDynamicModule(name.Name,name.Name + ".exe");
+            if (IsDebug)
+            {
+                //Make assembly debug-able.
+                Type debugattr = typeof(DebuggableAttribute);
+                ConstructorInfo db_const = debugattr.GetConstructor(new Type[] { typeof(DebuggableAttribute.DebuggingModes) });
+                CustomAttributeBuilder db_builder = new CustomAttributeBuilder(db_const, new object[] { 
+            DebuggableAttribute.DebuggingModes.DisableOptimizations | 
+            DebuggableAttribute.DebuggingModes.Default });
+
+                ab.SetCustomAttribute(db_builder);
+            }
+
+
+            ModuleBuilder mb = ab.DefineDynamicModule(name.Name, name.Name + ".exe", IsDebug);
+
+            if (IsDebug)
+            {
+                //Define the source code file.
+                doc = mb.DefineDocument(input.FullName, Guid.Empty, Guid.Empty, Guid.Empty);
+            }
+
             TypeBuilder tb = mb.DefineType("App");
             MethodBuilder entrypoint = tb.DefineMethod("Main", MethodAttributes.Public | MethodAttributes.Static);
 
@@ -120,7 +172,7 @@ namespace Mizu
             ILgen.EndExceptionBlock(); 
 
 
-            ILgen.Emit(OpCodes.Ret); //Finishes the statement by calling return
+            if (!IsInvalid) ILgen.Emit(OpCodes.Ret); //Finishes the statement by calling return
 
             ab.SetEntryPoint(entrypoint); //Sets entry point
 
@@ -155,6 +207,9 @@ namespace Mizu
 
                                             LocalBuilderEx local = new LocalBuilderEx();
                                             local.Base = ILgen.DeclareLocal(typeof(int));
+
+                                            if(IsDebug) local.Base.SetLocalSymInfo(token.Token.Text); //Set variable name for debug info.
+
                                             ILgen.Emit(OpCodes.Ldc_I4, int.Parse(next.Token.Text)); //Sets the number
                                             ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base); //Assigns the number to the variable.
 
@@ -179,6 +234,9 @@ namespace Mizu
 
                                             var looplab = ILgen.DefineLabel();
                                             local.Base = ILgen.DeclareLocal(typeof(int));
+
+                                            if (IsDebug) local.Base.SetLocalSymInfo(token.Token.Text); //Set variable name for debug info.
+                                            
                                             ILgen.Emit(OpCodes.Ldc_I4, local.LoopLow); //Sets the number
                                             ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base); //Assigns the number to the variable.
 
@@ -223,6 +281,19 @@ namespace Mizu
                         var outpt = stmt.Nodes[1];
                         if (outpt.Token.Type == TokenType.IDENTIFIER)
                         {
+                            if (IsDebug)
+                            {
+                                int sline = 0, scol = 0;
+
+                                FindLineAndCol(code,stmt.Token.StartPos,ref sline,ref scol);
+
+                                int eline = 0, ecol = 0;
+
+                                FindLineAndCol(code, stmt.Token.EndPos, ref eline, ref ecol);
+
+                                ILgen.MarkSequencePoint(doc, sline, scol, eline, ecol);
+                            }
+
                             ILgen.Emit(OpCodes.Ldloc, locals.Find(it => it.Name == outpt.Token.Text).Base);
                             ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] { typeof(string) }));
                             //ILgen.Emit(OpCodes.Pop);
@@ -304,6 +375,9 @@ namespace Mizu
 
                         LocalBuilderEx local = new LocalBuilderEx();
                         local.Base = ILgen.DeclareLocal(typeof(string)); //Sets the number
+
+                        if (IsDebug) local.Base.SetLocalSymInfo(identifier.Token.Text);
+
                         ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base); //Assigns the number to the variable.
 
                         local.Name = identifier.Token.Text;
@@ -319,6 +393,19 @@ namespace Mizu
                         var local = locals.Find(it => it.Name == input.Token.Text);
                         if (local != null)
                         {
+                            if (IsDebug)
+                            {
+                                int sline = 0, scol = 0;
+
+                                FindLineAndCol(code, cmd.Token.StartPos, ref sline, ref scol);
+
+                                int eline = 0, ecol = 0;
+
+                                FindLineAndCol(code, cmd.Token.EndPos, ref eline, ref ecol);
+
+                                ILgen.MarkSequencePoint(doc, sline, scol, eline, ecol);
+                            }
+
                             switch (cmd.Token.Type)
                             {
                                 case TokenType.SIN:
@@ -379,6 +466,26 @@ namespace Mizu
                 res += GenerateExprStr(pn);
             }
             return res;
+        }
+        private static void FindLineAndCol(string src, int pos, ref int line, ref int col)
+        {
+            //http://www.codeproject.com/Messages/3852786/Re-ParseError-line-numbers-always-0.aspx
+
+            line = 1;
+            col = 0;
+
+            for (int i = 0; i < pos; i++)
+            {
+                if (src[i] == '\n')
+                {
+                    line++;
+                    col = 1;
+                }
+                else
+                {
+                    col++;
+                }
+            }
         }
     }
 }
