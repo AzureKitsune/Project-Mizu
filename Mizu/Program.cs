@@ -260,33 +260,45 @@ namespace Mizu
                             localsadded = true;
                         }
 
+                        int arrymax = (tmplocals.Count*2) + 1;
+                        ILgen.Emit(OpCodes.Ldc_I4, arrymax);
+                        ILgen.Emit(OpCodes.Newarr, typeof(string));
+
+                        int arry_i = 0;
+
                         if (localsadded)
                         {
-                            int t = 0;
                             foreach (LocalBuilder tmploc in tmplocals)
                             {
-                                if (t == 2)
-                                {
-                                    ILgen.Emit(OpCodes.Call,
-                                       typeof(System.String).GetMethod("Concat",
-                                       new Type[] { typeof(string), typeof(string) }));
-                                    t = 0;
-                                }
+                                ILgen.Emit(OpCodes.Dup);
+                                ILgen.Emit(OpCodes.Ldc_I4, arry_i);
                                 ILgen.Emit(OpCodes.Ldloc, tmploc);
-                                t += 1;
+                                ILgen.Emit(OpCodes.Stelem_Ref);
+
+                                arry_i += 1;
+
+
+                                ILgen.Emit(OpCodes.Dup);
+                                ILgen.Emit(OpCodes.Ldc_I4, arry_i);
+                                ILgen.Emit(OpCodes.Ldstr, ";");
+                                ILgen.Emit(OpCodes.Stelem_Ref);
+
+                                arry_i += 1;
                             }
                         }
 
+                        ILgen.Emit(OpCodes.Dup);
+                        ILgen.Emit(OpCodes.Ldc_I4, arry_i);
 
                         exprstr += GenerateExprStr(expr);
                         ILgen.Emit(OpCodes.Ldstr, exprstr);
 
-
-                        ILgen.Emit(OpCodes.Ldstr, ";");
+                        ILgen.Emit(OpCodes.Stelem_Ref);
+                        arry_i += 1;
 
                         ILgen.Emit(OpCodes.Call,
     typeof(System.String).GetMethod("Concat",
-    new Type[] { typeof(string), typeof(string) }));
+    new Type[] { typeof(string[]) }));
 
                         ILgen.Emit(OpCodes.Call, typeof(Mizu.Lib.Evaluator.Evaluator).GetMethod("Eval"));
 
