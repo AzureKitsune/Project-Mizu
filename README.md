@@ -37,6 +37,21 @@ The "b`[1..10]" declares a variable named "**b**" and creates a for loop. B will
 
 ".c" prints the value of "**c**".
 
+Usage
+-----
+
+To use Mizu, you would call it from the command line like this:
+
+>   mizu ExampleInput.miz ExampleOutput.exe
+
+If nessesscary, you can append switches onto the end of the above command. Here are the available switches:
+
++   /debug - Generates debugging information (and symbols).
+
++   /run - Runs the executable after a successful compilation.
+
++   /invalid - Generates an invalid executable. (This is basically for my debugging use.)
+
 Technical Stuff
 ---------------
 
