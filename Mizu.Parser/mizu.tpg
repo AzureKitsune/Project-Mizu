@@ -36,14 +36,17 @@ ABS -> @"\@";
 SIN -> @"\$";
 COS -> @"\&";
 TAN -> @"\#";
+EQUAL -> @"\=";
+UPPER -> @"\^";
+NEWLINE -> @"(\r\n|\n)";
 
 
 Start -> (Statements)?;
 Statements -> Statement*;
-Statement -> (EvalStatement | VarStatement | PrintStatement | MathCMDStatement) (EOF|STATEMENTSEP+ (EOF)?);
-EvalStatement -> QUESTION IDENTIFIER COLON AddExpr;
-VarStatement -> IDENTIFIER SET (NUMBER|OPENBR NUMBER PERIOD PERIOD NUMBER CLOSEBR);
-PrintStatement -> PERIOD (IDENTIFIER?|SET (AddExpr|MathCMDStatement));
+Statement -> (EvalStatement | VarStatement | PrintStatement | MathCMDStatement) (EOF|(NEWLINE|STATEMENTSEP+) (EOF)?);
+EvalStatement -> QUESTION IDENTIFIER (COLON|EQUAL) AddExpr;
+VarStatement -> IDENTIFIER SET (NUMBER|OPENBR NUMBER PERIOD PERIOD NUMBER CLOSEBR|UPPER);
+PrintStatement -> PERIOD (IDENTIFIER?|NUMBER);
 MathCMDStatement -> (ABS|SIN|TAN) BROPEN (IDENTIFIER|NUMBER) BRCLOSE;
 
 //From the tinypg article.

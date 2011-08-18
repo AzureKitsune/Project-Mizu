@@ -21,9 +21,10 @@ namespace Mizu
         static void Main(string[] args)
         {
             //Mizu.Lib.Evaluator.Evaluator.Eval("var a=5;(2+2)");
-
+#if !DEBUG
             try
             {
+#endif
                 Console.WriteLine("Mizu Compiler v" + Assembly.GetExecutingAssembly().GetName().Version.ToString());
                 if (args.Length >= 2)
                 {
@@ -62,7 +63,7 @@ namespace Mizu
                                         case "/debug":
                                             {
                                                 if (!IsDebug)
-                                                    Console.WriteLine("Emitting debugging information.");
+                                                    Console.WriteLine("- Emitting debugging information.");
 
                                                 IsDebug = true;
                                                 break;
@@ -70,7 +71,7 @@ namespace Mizu
                                         case "/invalid":
                                             {
                                                 if (!IsInvalid)
-                                                    Console.WriteLine("Executable will be invalid on purpose.");
+                                                    Console.WriteLine("- Executable will be invalid on purpose.");
 
                                                 IsInvalid = true;
                                                 break;
@@ -78,7 +79,7 @@ namespace Mizu
                                         case "/run":
                                             {
                                                 if (!IsRun)
-                                                    Console.WriteLine("Executable will run when completed.");
+                                                    Console.WriteLine("- Executable will run when completed.");
 
                                                 IsRun = true;
                                                 break;
@@ -104,12 +105,14 @@ namespace Mizu
                 {
                     Console.WriteLine("mizu <input file> <output file> <switchs?>");
                 }
+#if !DEBUG
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine(ex.ToString());
                 return;
             }
+#endif
         }
         static void Compile(Mizu.Parser.ParseTree tree, FileInfo input, FileInfo output)
         {
@@ -208,6 +211,7 @@ namespace Mizu
             {
                 case Parser.TokenType.VarStatement:
                     {
+                        #region VAR
                         int i = 0;
                         while (i != stmt.Nodes.Count - 1)
                         {
@@ -240,6 +244,26 @@ namespace Mizu
                                             locals.Add(local); //Remembers the variable.
                                             i += 1;
                                         }
+                                        else if (next.Token.Type == TokenType.UPPER)
+                                        {
+                                            //A variable that reads from stdin (Console.ReadLne)
+                                            //Declares a variable and leaves a reference to it.
+
+                                            LocalBuilderEx local = new LocalBuilderEx();
+                                            local.Base = ILgen.DeclareLocal(typeof(int));
+
+                                            if (IsDebug) local.Base.SetLocalSymInfo(token.Token.Text); //Set variable name for debug info.
+
+                                            ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("ReadLine")); //Sets the number from STDIN.
+                                            //ILgen.Emit(OpCodes.Call,typeof(int).GetMethod("Parse", new Type[]{typeof(string)})); //Parses it into an integer.
+                                            ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base); //Assigns the number to the variable.
+
+                                            local.Name = token.Token.Text;
+                                            local.Type = LocalType.Var;
+
+                                            locals.Add(local); //Remembers the variable.
+                                            i += 1;
+                                        }
                                         else
                                         {
                                             //Its a range
@@ -257,7 +281,7 @@ namespace Mizu
                                             local.Base = ILgen.DeclareLocal(typeof(int));
 
                                             if (IsDebug) local.Base.SetLocalSymInfo(token.Token.Text); //Set variable name for debug info.
-                                            
+
                                             ILgen.Emit(OpCodes.Ldc_I4, local.LoopLow); //Sets the number
                                             ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base); //Assigns the number to the variable.
 
@@ -294,6 +318,7 @@ namespace Mizu
                             }
                         }
                         break;
+                        #endregion
                     }
                 case TokenType.PrintStatement:
                     {
@@ -336,6 +361,7 @@ namespace Mizu
                         {
 
                             ILgen.Emit(OpCodes.Ldstr, "var " + lc.Name + "={0}");
+
                             ILgen.Emit(OpCodes.Ldloc, (LocalBuilder)lc.Base);
                             ILgen.Emit(OpCodes.Box, typeof(int));
                             ILgen.Emit(OpCodes.Castclass, typeof(object));
@@ -405,6 +431,7 @@ namespace Mizu
                         local.Type = LocalType.Var;
 
                         locals.Add(local); //Remembers the variable. 
+
                         break;
                     }
                 case TokenType.MathCMDStatement:

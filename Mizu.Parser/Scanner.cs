@@ -114,6 +114,18 @@ namespace Mizu.Parser
             Patterns.Add(TokenType.TAN, regex);
             Tokens.Add(TokenType.TAN);
 
+            regex = new Regex(@"\=", RegexOptions.Compiled);
+            Patterns.Add(TokenType.EQUAL, regex);
+            Tokens.Add(TokenType.EQUAL);
+
+            regex = new Regex(@"\^", RegexOptions.Compiled);
+            Patterns.Add(TokenType.UPPER, regex);
+            Tokens.Add(TokenType.UPPER);
+
+            regex = new Regex(@"(\r\n|\n)", RegexOptions.Compiled);
+            Patterns.Add(TokenType.NEWLINE, regex);
+            Tokens.Add(TokenType.NEWLINE);
+
 
         }
 
@@ -269,7 +281,10 @@ namespace Mizu.Parser
             ABS     = 28,
             SIN     = 29,
             COS     = 30,
-            TAN     = 31
+            TAN     = 31,
+            EQUAL   = 32,
+            UPPER   = 33,
+            NEWLINE = 34
     }
 
     public class Token
