@@ -14,6 +14,7 @@ namespace Mizu
     class Program
     {
         static bool IsDebug = false;
+        static bool IsRun = false;
         static bool IsInvalid = false; //To generate a invalid exe.
         static ISymbolDocumentWriter doc = null; //Debug info from  -> http://blogs.msdn.com/b/jmstall/archive/2005/02/03/366429.aspx
         static string code = null;
@@ -74,12 +75,23 @@ namespace Mizu
                                                 IsInvalid = true;
                                                 break;
                                             }
+                                        case "/run":
+                                            {
+                                                if (!IsRun)
+                                                    Console.WriteLine("Executable will run when completed.");
+
+                                                IsRun = true;
+                                                break;
+                                            }
                                     }
                                 }
                             }
 
 
                             Compile(parsetree, info, output); //Start the compiler process.
+
+                            if (IsRun)
+                                Process.Start(output.FullName);
                         }
                     }
                     else
