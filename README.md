@@ -49,3 +49,8 @@ Contact Me
 If you have any questions, you can find me on IRC. ##XAMPP @ irc.freenode.net
 
 Remember, theres two #, not one.
+
+Credits
+-------
+
+I would like to thank Mike Danes from the MSDN forums for his help with solving my "stack depth" issues. You can see the thread here -> http://social.msdn.microsoft.com/Forums/eu/clr/thread/ad499556-3a2f-4530-9584-2ec9ca76da53
