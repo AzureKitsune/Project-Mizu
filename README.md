@@ -37,6 +37,8 @@ The "b`[1..10]" declares a variable named "**b**" and creates a for loop. B will
 
 ".c" prints the value of "**c**".
 
+As of Amrykid/Project-Mizu@2820921cd45e252db90b24b69c126afba3a219e8
+
 Usage
 -----
 
