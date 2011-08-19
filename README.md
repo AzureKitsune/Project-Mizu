@@ -38,11 +38,12 @@ The "b`[1..10]" declares a variable named "**b**" and creates a for loop. B will
 ".c" prints the value of "**c**".
 
 As of commit [2820921cd45e252db90b24b69c126afba3a219e8](https://github.com/Amrykid/Project-Mizu/commit/2820921cd45e252db90b24b69c126afba3a219e8), Mizu supports multi-line code:
-+   ﻿c`^|a`5	
-+   b`[1..99]	
-+   ?res=2+(2+3)+(b*a)	
-+   .res	
-+   .c
+
+	﻿c`^|a`5	
+	b`[1..99]	
+	?res=2+(2+3)+(b*a)	
+	res	
+	.c
 
 
 Usage
