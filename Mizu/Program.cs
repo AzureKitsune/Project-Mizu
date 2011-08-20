@@ -18,14 +18,21 @@ namespace Mizu
         static bool IsInvalid = false; //To generate a invalid exe.
         static ISymbolDocumentWriter doc = null; //Debug info from  -> http://blogs.msdn.com/b/jmstall/archive/2005/02/03/366429.aspx
         static string code = null;
+        static string mode = null;
         static void Main(string[] args)
         {
+#if DEBUG
+            mode = "Debug";
+#else
+            mode = "Release";
+#endif
+
             //Mizu.Lib.Evaluator.Evaluator.Eval("var a=5;(2+2)");
 #if !DEBUG
             try
             {
 #endif
-                Console.WriteLine("Mizu Compiler v" + Assembly.GetExecutingAssembly().GetName().Version.ToString());
+                Console.WriteLine("Mizu Compiler v" + Assembly.GetExecutingAssembly().GetName().Version.ToString() + " " + mode + " build.");
                 if (args.Length >= 2)
                 {
                     if (System.IO.File.Exists(args[0]))
@@ -103,7 +110,7 @@ namespace Mizu
                 }
                 else
                 {
-                    Console.WriteLine("mizu <input file> <output file> <switchs?>");
+                    Console.WriteLine("Accepted Input: mizu <input file> <output file> <switchs?>");
                 }
 #if !DEBUG
             }
@@ -290,6 +297,7 @@ namespace Mizu
 
                                             local.LoopAction = () =>
                                             {
+                                             
                                                 //Updates the iterator by +1
                                                 ILgen.Emit(OpCodes.Ldloc, local.Base.LocalIndex);
                                                 ILgen.Emit(OpCodes.Ldc_I4_1);
