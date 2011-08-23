@@ -216,7 +216,7 @@ namespace Mizu
             Type finishedtype =  tb.CreateType(); //Compile the type
 
             ab.Save(output.Name); //Save
-
+            
         }
         static void HandleStatement(Mizu.Parser.ParseNode stmt, ILGenerator ILgen, ref List<LocalBuilderEx> locals, out bool err)
         {
@@ -229,6 +229,19 @@ namespace Mizu
                         while (i != stmt.Nodes.Count - 1)
                         {
                             var token = stmt.Nodes[i];
+
+                            if (IsDebug)
+                            {
+                                int sline = 0, scol = 0;
+
+                                FindLineAndCol(code, stmt.Token.StartPos, ref sline, ref scol);
+
+                                int eline = 0, ecol = 0;
+
+                                FindLineAndCol(code, stmt.Token.EndPos, ref eline, ref ecol);
+
+                                ILgen.MarkSequencePoint(doc, sline, scol, eline, ecol);
+                            }
 
                             if (token.Token.Type == TokenType.IDENTIFIER) //If its a var declaration.
                             {
