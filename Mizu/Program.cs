@@ -413,10 +413,23 @@ namespace Mizu
                                 }
                             case TokenType.STRING:
                                 {
+                                    //Prints just a plain string. See the next case for a format string.
 
-                                    //Prints output via a format string.
+                                    string formt = outpt.Token.Text.Substring(1); formt = formt.Remove(formt.Length - 1); //Removes surrounding quotes.
 
-                                    string formt = outpt.Token.Text.Substring(1); formt = formt.Remove(formt.Length - 1);
+                                    ILgen.Emit(OpCodes.Ldstr, formt); //Loads the string onto the stack
+
+                                    ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] { typeof(string) })); //Prints the newly formed string.
+                                    break;
+                                }
+                            case TokenType.SIN:
+                                {
+
+                                    //Prints a format string
+
+                                    ParseNode formtnd = stmt.Nodes[2];
+
+                                    string formt = formtnd.Token.Text.Substring(1); formt = formt.Remove(formt.Length - 1); //Removes surrounding quotes.
 
                                     ILgen.Emit(OpCodes.Ldstr, formt); //Loads the format string.
 
@@ -428,7 +441,7 @@ namespace Mizu
 
 
 
-                                    for (int i = 2; i < stmt.Nodes.Count; i++)
+                                    for (int i = 3; i < stmt.Nodes.Count; i++)
                                     {
                                         if (stmt.Nodes[i].Token.Type == TokenType.WHITESPACE)
                                         {

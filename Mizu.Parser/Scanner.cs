@@ -33,6 +33,7 @@ namespace Mizu.Parser
             Skipped = new List<Token>();
 
             SkipList = new List<TokenType>();
+            SkipList.Add(TokenType.COMMENTBLOCK);
 
             regex = new Regex(@"[0-9]+", RegexOptions.Compiled);
             Patterns.Add(TokenType.NUMBER, regex);
@@ -137,6 +138,10 @@ namespace Mizu.Parser
             regex = new Regex(@"\"".+?\""", RegexOptions.Compiled);
             Patterns.Add(TokenType.STRING, regex);
             Tokens.Add(TokenType.STRING);
+
+            regex = new Regex(@"/\*[^*]*\*+(?:[^/*][^*]*\*+)*/", RegexOptions.Compiled);
+            Patterns.Add(TokenType.COMMENTBLOCK, regex);
+            Tokens.Add(TokenType.COMMENTBLOCK);
 
 
         }
@@ -299,7 +304,8 @@ namespace Mizu.Parser
             UPPER   = 34,
             NEWLINE = 35,
             WAVEY   = 36,
-            STRING  = 37
+            STRING  = 37,
+            COMMENTBLOCK= 38
     }
 
     public class Token

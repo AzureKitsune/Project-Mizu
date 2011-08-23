@@ -133,14 +133,17 @@ namespace Mizu.Parser
                     switch (tok.Type)
                     {
                         case TokenType.NEWLINE:
-                            tok = scanner.Scan(TokenType.NEWLINE);
-                            n = node.CreateNode(tok, tok.ToString() );
-                            node.Token.UpdateRange(tok);
-                            node.Nodes.Add(n);
-                            if (tok.Type != TokenType.NEWLINE) {
-                                tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.NEWLINE.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
-                                return;
-                            }
+                            do {
+                                tok = scanner.Scan(TokenType.NEWLINE);
+                                n = node.CreateNode(tok, tok.ToString() );
+                                node.Token.UpdateRange(tok);
+                                node.Nodes.Add(n);
+                                if (tok.Type != TokenType.NEWLINE) {
+                                    tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.NEWLINE.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
+                                    return;
+                                }
+                                tok = scanner.LookAhead(TokenType.NEWLINE);
+                            } while (tok.Type == TokenType.NEWLINE);
                             break;
                         case TokenType.STATEMENTSEP:
                             do {
@@ -402,7 +405,7 @@ namespace Mizu.Parser
             }
 
             
-            tok = scanner.LookAhead(TokenType.IDENTIFIER, TokenType.NUMBER, TokenType.STRING);
+            tok = scanner.LookAhead(TokenType.IDENTIFIER, TokenType.NUMBER, TokenType.STRING, TokenType.SIN);
             switch (tok.Type)
             {
                 case TokenType.IDENTIFIER:
@@ -440,6 +443,38 @@ namespace Mizu.Parser
                     }
                     break;
                 case TokenType.STRING:
+
+                    
+                    tok = scanner.Scan(TokenType.STRING);
+                    n = node.CreateNode(tok, tok.ToString() );
+                    node.Token.UpdateRange(tok);
+                    node.Nodes.Add(n);
+                    if (tok.Type != TokenType.STRING) {
+                        tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.STRING.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
+                        return;
+                    }
+
+                    
+                    tok = scanner.Scan(TokenType.PERIOD);
+                    n = node.CreateNode(tok, tok.ToString() );
+                    node.Token.UpdateRange(tok);
+                    node.Nodes.Add(n);
+                    if (tok.Type != TokenType.PERIOD) {
+                        tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.PERIOD.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
+                        return;
+                    }
+                    break;
+                case TokenType.SIN:
+
+                    
+                    tok = scanner.Scan(TokenType.SIN);
+                    n = node.CreateNode(tok, tok.ToString() );
+                    node.Token.UpdateRange(tok);
+                    node.Nodes.Add(n);
+                    if (tok.Type != TokenType.SIN) {
+                        tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.SIN.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
+                        return;
+                    }
 
                     
                     tok = scanner.Scan(TokenType.STRING);
