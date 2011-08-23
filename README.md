@@ -77,4 +77,4 @@ Remember, theres two #, not one.
 Credits
 -------
 
-I would like to thank Mike Danes from the MSDN forums for his help with solving my "stack depth" issues. You can see the thread here -> http://social.msdn.microsoft.com/Forums/eu/clr/thread/ad499556-3a2f-4530-9584-2ec9ca76da53
++    I would like to thank [Mike Danes](http://social.msdn.microsoft.com/profile/mike%20danes/) from the MSDN forums for his help with solving my [stack depth](http://social.msdn.microsoft.com/Forums/eu/clr/thread/ad499556-3a2f-4530-9584-2ec9ca76da53) and [OutOfMemory](http://social.msdn.microsoft.com/Forums/en-US/clr/thread/6895647e-22de-4921-9797-55df9f5a2adc) issues. 
