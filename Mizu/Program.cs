@@ -51,13 +51,19 @@ namespace Mizu
                         {
                             foreach (Mizu.Parser.ParseError err in parsetree.Errors) //Report all errors.
                             {
-                                Console.Error.WriteLine("{0}: {1} - {2},{3}", err.Message, err.Position, err.Line, err.Column);
+                                Console.Error.WriteLine("Error: {0}: {1} - {2},{3}", err.Message, err.Position, err.Line, err.Column);
                                 return;
                             }
                         }
                         else
                         {
                             var output = new FileInfo(args[1]); //Get info on the future output file.
+
+                            if (output.Extension.Length == 0)
+                            {
+                                Console.Error.WriteLine("Error: Output filename must have an extension.");
+                                return;
+                            }
 
                             Console.WriteLine("Compiling: {0} -> {1}", info.Name, output.Name);
 
@@ -104,7 +110,7 @@ namespace Mizu
                     }
                     else
                     {
-                        Console.Error.WriteLine("Input file doesn't exist.");
+                        Console.Error.WriteLine("Error: Input file doesn't exist.");
                         return;
                     }
                 }
@@ -348,7 +354,7 @@ namespace Mizu
                                 {
                                     //Report an error and stop compile process.
                                     err = true;
-                                    Console.Error.WriteLine("'{0}' already exist!", token.Token.Text);
+                                    Console.Error.WriteLine("Error: '{0}' already exist!", token.Token.Text);
                                     break;
                                 }
                             }
@@ -384,7 +390,7 @@ namespace Mizu
                                     if (local == null)
                                     {
                                         err = true;
-                                        Console.Error.WriteLine("'{0}' doesn't exist!", outpt.Token.Text);
+                                        Console.Error.WriteLine("Error: '{0}' doesn't exist!", outpt.Token.Text);
                                         return;
                                     }
 
@@ -447,7 +453,7 @@ namespace Mizu
                                                         if (local == null)
                                                         {
                                                             err = true;
-                                                            Console.Error.WriteLine("'{0}' doesn't exist!", nd.Token.Text);
+                                                            Console.Error.WriteLine("Error: '{0}' doesn't exist!", nd.Token.Text);
                                                             return;
                                                         }
 
@@ -635,7 +641,7 @@ namespace Mizu
                         {
                             //Report an error and stop compile process.
                             err = true;
-                            Console.Error.WriteLine("'{0}' doesn't exist!", input.Token.Text);
+                            Console.Error.WriteLine("Error: '{0}' doesn't exist!", input.Token.Text);
                             break;
                         }
 
@@ -645,7 +651,7 @@ namespace Mizu
                     {
                         //Report an error and stop compile process.
                         err = true;
-                        Console.Error.WriteLine("Unsupported statement: {0}", stmt.ToString());
+                        Console.Error.WriteLine("Error: Unsupported statement: {0}", stmt.ToString());
                         break;
                     }
             }
