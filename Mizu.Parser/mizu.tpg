@@ -41,13 +41,15 @@ EQUAL -> @"\=";
 UPPER -> @"\^";
 NEWLINE -> @"(\r\n|\n)";
 WAVEY -> @"\~";
+STRING -> @"\"".+?\""";
+
 
 Start -> (Statements)?;
 Statements -> Statement*;
 Statement -> (EvalStatement | VarStatement | PrintStatement | MathCMDStatement) (EOF|(NEWLINE|STATEMENTSEP+) (EOF)?);
 EvalStatement -> QUESTION IDENTIFIER (COLON|EQUAL) AddExpr;
 VarStatement -> IDENTIFIER SET (NUMBER|OPENBR NUMBER PERIOD PERIOD NUMBER CLOSEBR|UPPER (WAVEY?));
-PrintStatement -> PERIOD (IDENTIFIER?|NUMBER);
+PrintStatement -> PERIOD ((IDENTIFIER?|NUMBER)|STRING WHITESPACE ((IDENTIFIER|NUMBER)WHITESPACE?)+);
 MathCMDStatement -> (ABS|SIN|TAN|SQRT) BROPEN (IDENTIFIER) BRCLOSE;
 
 //From the tinypg article.

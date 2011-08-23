@@ -402,32 +402,113 @@ namespace Mizu.Parser
             }
 
             
-            tok = scanner.LookAhead(TokenType.IDENTIFIER, TokenType.NUMBER);
+            tok = scanner.LookAhead(TokenType.IDENTIFIER, TokenType.NUMBER, TokenType.STRING);
             switch (tok.Type)
             {
                 case TokenType.IDENTIFIER:
-                    tok = scanner.LookAhead(TokenType.IDENTIFIER);
-                    if (tok.Type == TokenType.IDENTIFIER)
+                case TokenType.NUMBER:
+                    tok = scanner.LookAhead(TokenType.IDENTIFIER, TokenType.NUMBER);
+                    switch (tok.Type)
                     {
-                        tok = scanner.Scan(TokenType.IDENTIFIER);
-                        n = node.CreateNode(tok, tok.ToString() );
-                        node.Token.UpdateRange(tok);
-                        node.Nodes.Add(n);
-                        if (tok.Type != TokenType.IDENTIFIER) {
-                            tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.IDENTIFIER.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
-                            return;
-                        }
+                        case TokenType.IDENTIFIER:
+                            tok = scanner.LookAhead(TokenType.IDENTIFIER);
+                            if (tok.Type == TokenType.IDENTIFIER)
+                            {
+                                tok = scanner.Scan(TokenType.IDENTIFIER);
+                                n = node.CreateNode(tok, tok.ToString() );
+                                node.Token.UpdateRange(tok);
+                                node.Nodes.Add(n);
+                                if (tok.Type != TokenType.IDENTIFIER) {
+                                    tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.IDENTIFIER.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
+                                    return;
+                                }
+                            }
+                            break;
+                        case TokenType.NUMBER:
+                            tok = scanner.Scan(TokenType.NUMBER);
+                            n = node.CreateNode(tok, tok.ToString() );
+                            node.Token.UpdateRange(tok);
+                            node.Nodes.Add(n);
+                            if (tok.Type != TokenType.NUMBER) {
+                                tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.NUMBER.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
+                                return;
+                            }
+                            break;
+                        default:
+                            tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found.", 0x0002, 0, tok.StartPos, tok.StartPos, tok.Length));
+                            break;
                     }
                     break;
-                case TokenType.NUMBER:
-                    tok = scanner.Scan(TokenType.NUMBER);
+                case TokenType.STRING:
+
+                    
+                    tok = scanner.Scan(TokenType.STRING);
                     n = node.CreateNode(tok, tok.ToString() );
                     node.Token.UpdateRange(tok);
                     node.Nodes.Add(n);
-                    if (tok.Type != TokenType.NUMBER) {
-                        tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.NUMBER.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
+                    if (tok.Type != TokenType.STRING) {
+                        tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.STRING.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
                         return;
                     }
+
+                    
+                    tok = scanner.Scan(TokenType.WHITESPACE);
+                    n = node.CreateNode(tok, tok.ToString() );
+                    node.Token.UpdateRange(tok);
+                    node.Nodes.Add(n);
+                    if (tok.Type != TokenType.WHITESPACE) {
+                        tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.WHITESPACE.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
+                        return;
+                    }
+
+                    
+                    do {
+
+                        
+                        tok = scanner.LookAhead(TokenType.IDENTIFIER, TokenType.NUMBER);
+                        switch (tok.Type)
+                        {
+                            case TokenType.IDENTIFIER:
+                                tok = scanner.Scan(TokenType.IDENTIFIER);
+                                n = node.CreateNode(tok, tok.ToString() );
+                                node.Token.UpdateRange(tok);
+                                node.Nodes.Add(n);
+                                if (tok.Type != TokenType.IDENTIFIER) {
+                                    tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.IDENTIFIER.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
+                                    return;
+                                }
+                                break;
+                            case TokenType.NUMBER:
+                                tok = scanner.Scan(TokenType.NUMBER);
+                                n = node.CreateNode(tok, tok.ToString() );
+                                node.Token.UpdateRange(tok);
+                                node.Nodes.Add(n);
+                                if (tok.Type != TokenType.NUMBER) {
+                                    tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.NUMBER.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
+                                    return;
+                                }
+                                break;
+                            default:
+                                tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found.", 0x0002, 0, tok.StartPos, tok.StartPos, tok.Length));
+                                break;
+                        }
+
+                        
+                        tok = scanner.LookAhead(TokenType.WHITESPACE);
+                        if (tok.Type == TokenType.WHITESPACE)
+                        {
+                            tok = scanner.Scan(TokenType.WHITESPACE);
+                            n = node.CreateNode(tok, tok.ToString() );
+                            node.Token.UpdateRange(tok);
+                            node.Nodes.Add(n);
+                            if (tok.Type != TokenType.WHITESPACE) {
+                                tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.WHITESPACE.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
+                                return;
+                            }
+                        }
+                        tok = scanner.LookAhead(TokenType.IDENTIFIER, TokenType.NUMBER);
+                    } while (tok.Type == TokenType.IDENTIFIER
+                        || tok.Type == TokenType.NUMBER);
                     break;
                 default:
                     tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found.", 0x0002, 0, tok.StartPos, tok.StartPos, tok.Length));

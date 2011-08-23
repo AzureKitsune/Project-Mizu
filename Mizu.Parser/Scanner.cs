@@ -134,6 +134,10 @@ namespace Mizu.Parser
             Patterns.Add(TokenType.WAVEY, regex);
             Tokens.Add(TokenType.WAVEY);
 
+            regex = new Regex(@"\"".+?\""", RegexOptions.Compiled);
+            Patterns.Add(TokenType.STRING, regex);
+            Tokens.Add(TokenType.STRING);
+
 
         }
 
@@ -294,7 +298,8 @@ namespace Mizu.Parser
             EQUAL   = 33,
             UPPER   = 34,
             NEWLINE = 35,
-            WAVEY   = 36
+            WAVEY   = 36,
+            STRING  = 37
     }
 
     public class Token

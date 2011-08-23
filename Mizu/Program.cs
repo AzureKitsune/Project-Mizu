@@ -345,30 +345,126 @@ namespace Mizu
                     }
                 case TokenType.PrintStatement:
                     {
+                        if (IsDebug)
+                        {
+                            int sline = 0, scol = 0;
+
+                            FindLineAndCol(code, stmt.Token.StartPos, ref sline, ref scol);
+
+                            int eline = 0, ecol = 0;
+
+                            FindLineAndCol(code, stmt.Token.EndPos, ref eline, ref ecol);
+
+                            ILgen.MarkSequencePoint(doc, sline, scol, eline, ecol);
+                        }
+
                         ///Generates output by making a print statement.
                         var period = stmt.Nodes[0];
                         var outpt = stmt.Nodes[1];
-                        if (outpt.Token.Type == TokenType.IDENTIFIER)
+                        switch (outpt.Token.Type)
                         {
-                            if (IsDebug)
-                            {
-                                int sline = 0, scol = 0;
+                            case TokenType.IDENTIFIER:
+                                {
+                                    //Prints a variable.
+                                    LocalBuilderEx local = locals.Find(it => it.Name == outpt.Token.Text);
 
-                                FindLineAndCol(code,stmt.Token.StartPos,ref sline,ref scol);
+                                    if (local == null)
+                                    {
+                                        err = true;
+                                        Console.Error.WriteLine("'{0}' doesn't exist!", outpt.Token.Text);
+                                        return;
+                                    }
 
-                                int eline = 0, ecol = 0;
+                                    ILgen.Emit(OpCodes.Ldloc, local.Base);
 
-                                FindLineAndCol(code, stmt.Token.EndPos, ref eline, ref ecol);
+                                    ILgen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToString", new Type[] { typeof(int) })); //Converts the integer to a string.
 
-                                ILgen.MarkSequencePoint(doc, sline, scol, eline, ecol);
-                            }
+                                    ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] { typeof(string) })); //Prints the newly formed string.
+                                    break;
+                                }
+                            case TokenType.NUMBER:
+                                {
+                                    //Prints a number
+                                    ILgen.Emit(OpCodes.Ldc_I4, int.Parse(outpt.Token.Text));
 
-                            ILgen.Emit(OpCodes.Ldloc, locals.Find(it => it.Name == outpt.Token.Text).Base);
+                                    ILgen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToString", new Type[] { typeof(int) })); //Converts the integer to a string.
 
-                            ILgen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToString", new Type[] { typeof(int) })); //Converts the integer to a string.
+                                    ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] { typeof(string) })); //Prints the newly formed string.
+                                    break;
+                                }
+                            case TokenType.STRING:
+                                {
 
-                            ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] { typeof(string) })); //Prints the newly formed string.
-                            //ILgen.Emit(OpCodes.Pop);
+                                    //Prints output via a format string.
+
+                                    string formt = outpt.Token.Text.Substring(1); formt = formt.Remove(formt.Length - 1);
+
+                                    ILgen.Emit(OpCodes.Ldstr, formt); //Loads the format string.
+
+                                    int arrymax = (stmt.Nodes.Count / 2 - 1);
+                                    ILgen.Emit(OpCodes.Ldc_I4, arrymax);
+                                    ILgen.Emit(OpCodes.Newarr, typeof(string));
+
+                                    int arry_i = 0;
+
+
+
+                                    for (int i = 2; i < stmt.Nodes.Count; i++)
+                                    {
+                                        if (stmt.Nodes[i].Token.Type == TokenType.WHITESPACE)
+                                        {
+                                            if (stmt.Nodes.Count - 1 == i)
+                                                break;
+
+                                            continue;
+                                        }
+                                        else
+                                        {
+                                            ParseNode nd = stmt.Nodes[i];
+
+                                            ILgen.Emit(OpCodes.Dup);
+                                            ILgen.Emit(OpCodes.Ldc_I4, arry_i);
+
+                                            switch (nd.Token.Type)
+                                            {
+                                                case TokenType.IDENTIFIER:
+                                                    {
+                                                        LocalBuilderEx local = locals.Find(it => it.Name == nd.Token.Text);
+
+                                                        if (local == null)
+                                                        {
+                                                            err = true;
+                                                            Console.Error.WriteLine("'{0}' doesn't exist!", nd.Token.Text);
+                                                            return;
+                                                        }
+
+                                                        ILgen.Emit(OpCodes.Ldloc, local.Base);
+                                                        ILgen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToString", new Type[] { typeof(int) }));
+                                                        break;
+                                                    }
+                                                case TokenType.NUMBER:
+                                                    {
+                                                        ILgen.Emit(OpCodes.Ldc_I4, int.Parse(nd.Token.Text));
+                                                        ILgen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToString", new Type[] { typeof(int) }));
+                                                        break;
+                                                    }
+                                            }
+
+                                            ILgen.Emit(OpCodes.Stelem_Ref);
+
+                                            arry_i += 1;
+
+                                        }
+                                    }
+
+
+                                    ILgen.Emit(OpCodes.Call,
+    typeof(System.String).GetMethod("Format",
+    new Type[] { typeof(string), typeof(string[]) }));
+
+                                    ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] { typeof(string) })); //Prints the newly formed string.
+                                    break;
+                                }
                         }
                         break;
                     }
