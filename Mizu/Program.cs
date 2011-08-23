@@ -161,6 +161,8 @@ namespace Mizu
 
             ILgen.BeginExceptionBlock(); //Start a try statement.
 
+            if (IsDebug) ILgen.BeginScope();
+
             // Generate body IL
             bool err = false;
             foreach (Mizu.Parser.ParseNode statement in statements.Nodes)
@@ -196,9 +198,13 @@ namespace Mizu
                 }
             }
 
+            if (IsDebug) ILgen.EndScope();
+
             ILgen.BeginCatchBlock(typeof(Exception)); //Ends the try statement and starts the catch section.
 
-            ILgen.Emit(OpCodes.Rethrow); //Rethrows the exception
+            /*ILgen.Emit(OpCodes.Call, typeof(Exception).GetMethod("ToString", new Type[] { })); //Gets the exception as a string.
+
+            ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] { typeof(string) })); */
 
             ILgen.EndExceptionBlock();  //Ends the catch section.
 
@@ -258,15 +264,24 @@ namespace Mizu
 
                                             LocalBuilderEx local = new LocalBuilderEx();
                                             local.Base = ILgen.DeclareLocal(typeof(int));
+                                            local.Name = token.Token.Text;
+                                            local.Type = LocalType.Var;
 
                                             if (IsDebug) local.Base.SetLocalSymInfo(token.Token.Text); //Set variable name for debug info.
 
-                                            ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("ReadLine")); //Sets the number from STDIN.
-                                            //ILgen.Emit(OpCodes.Call,typeof(int).GetMethod("Parse", new Type[]{typeof(string)})); //Parses it into an integer.
-                                            ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base); //Assigns the number to the variable.
+                                            try
+                                            {
+                                                //If theres a WAVEY symbol, print the variable name.
+                                                var wavey = stmt.Nodes[i + 2];
+                                                ILgen.Emit(OpCodes.Ldstr,local.Name + " = ");
+                                                ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("Write", new Type[] { typeof(string) }));
+                                                i += 1;
+                                            }
+                                            catch (Exception) { }
 
-                                            local.Name = token.Token.Text;
-                                            local.Type = LocalType.Var;
+                                            ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("ReadLine")); //Sets the number from STDIN.
+                                            ILgen.Emit(OpCodes.Call,typeof(Convert).GetMethod("ToInt32", new Type[]{typeof(string)})); //Parses it into an integer.
+                                            ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base); //Assigns the number to the variable.
 
                                             locals.Add(local); //Remembers the variable.
                                             i += 1;
@@ -299,7 +314,7 @@ namespace Mizu
                                             {
                                              
                                                 //Updates the iterator by +1
-                                                ILgen.Emit(OpCodes.Ldloc, local.Base.LocalIndex);
+                                                ILgen.Emit(OpCodes.Ldloc, local.Base);
                                                 ILgen.Emit(OpCodes.Ldc_I4_1);
                                                 ILgen.Emit(OpCodes.Add);
                                                 ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base);
@@ -349,7 +364,10 @@ namespace Mizu
                             }
 
                             ILgen.Emit(OpCodes.Ldloc, locals.Find(it => it.Name == outpt.Token.Text).Base);
-                            ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] { typeof(string) }));
+
+                            ILgen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToString", new Type[] { typeof(int) })); //Converts the integer to a string.
+
+                            ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] { typeof(string) })); //Prints the newly formed string.
                             //ILgen.Emit(OpCodes.Pop);
                         }
                         break;
@@ -371,8 +389,9 @@ namespace Mizu
                             ILgen.Emit(OpCodes.Ldstr, "var " + lc.Name + "={0}");
 
                             ILgen.Emit(OpCodes.Ldloc, (LocalBuilder)lc.Base);
-                            ILgen.Emit(OpCodes.Box, typeof(int));
-                            ILgen.Emit(OpCodes.Castclass, typeof(object));
+
+                            ILgen.Emit(OpCodes.Call,
+                                typeof(Convert).GetMethod("ToString", new Type[] { typeof(int) }));
 
                             ILgen.Emit(OpCodes.Call,
                                 typeof(System.String).GetMethod("Format",
@@ -429,9 +448,11 @@ namespace Mizu
                         ILgen.Emit(OpCodes.Call, typeof(Mizu.Lib.Evaluator.Evaluator).GetMethod("Eval"));
 
                         LocalBuilderEx local = new LocalBuilderEx();
-                        local.Base = ILgen.DeclareLocal(typeof(string)); //Sets the number
+                        local.Base = ILgen.DeclareLocal(typeof(int)); //Sets the number
 
                         if (IsDebug) local.Base.SetLocalSymInfo(identifier.Token.Text);
+
+                        ILgen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToInt32", new Type[] { typeof(string) })); //Parses it into an integer.
 
                         ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base); //Assigns the number to the variable.
 
@@ -464,30 +485,37 @@ namespace Mizu
 
                             switch (cmd.Token.Type)
                             {
+                                case TokenType.SQRT:
+                                    {
+                                        ILgen.Emit(OpCodes.Ldloca, local.Base);
+                                        ILgen.Emit(OpCodes.Call, typeof(Math).GetMethod("Sqrt"));
+                                        ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base);
+                                        break;
+                                    }
                                 case TokenType.SIN:
                                     {
-                                        ILgen.Emit(OpCodes.Ldloc, local.Base.LocalIndex);
+                                        ILgen.Emit(OpCodes.Ldloca, local.Base);
                                         ILgen.Emit(OpCodes.Call, typeof(Math).GetMethod("Sin"));
                                         ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base);
                                         break;
                                     }
                                 case TokenType.ABS:
                                     {
-                                        ILgen.Emit(OpCodes.Ldloc, local.Base.LocalIndex);
+                                        ILgen.Emit(OpCodes.Ldloca, local.Base);
                                         ILgen.Emit(OpCodes.Call, typeof(Math).GetMethod("Abs", new Type[] { typeof(int) }));
                                         ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base);
                                         break;
                                     }
                                 case TokenType.TAN:
                                     {
-                                        ILgen.Emit(OpCodes.Ldloc, local.Base.LocalIndex);
+                                        ILgen.Emit(OpCodes.Ldloca, local.Base);
                                         ILgen.Emit(OpCodes.Call, typeof(Math).GetMethod("Tan"));
                                         ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base);
                                         break;
                                     }
                                 case TokenType.COS:
                                     {
-                                        ILgen.Emit(OpCodes.Ldloc, local.Base.LocalIndex);
+                                        ILgen.Emit(OpCodes.Ldloca, local.Base);
                                         ILgen.Emit(OpCodes.Call, typeof(Math).GetMethod("Cos"));
                                         ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base);
                                         break;
