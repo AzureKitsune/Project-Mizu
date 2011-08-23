@@ -1,5 +1,1 @@
-﻿."Hello World".|a`6
-/* This is a comment and is ignored */
-b`5
-
-.$"This is a format string: {0} {1} {2}" a b 8
+﻿
