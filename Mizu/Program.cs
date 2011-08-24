@@ -46,6 +46,12 @@ namespace Mizu
 
                         code = File.ReadAllText(args[0]); //Reads all the code.
 
+                        if (code.Length == 0)
+                        {
+                            Console.Error.WriteLine("Error: Input file cannot be empty.");
+                            return;
+                        }
+
                         var parsetree = parser.Parse(code); //Parse the code.
                         if (parsetree.Errors.Count > 0)
                         {
@@ -491,8 +497,8 @@ namespace Mizu
 
 
                                     ILgen.Emit(OpCodes.Call,
-    typeof(System.String).GetMethod("Format",
-    new Type[] { typeof(string), typeof(string[]) }));
+                                        typeof(System.String).GetMethod("Format",
+                                            new Type[] { typeof(string), typeof(string[]) }));
 
                                     ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] { typeof(string) })); //Prints the newly formed string.
                                     break;
@@ -507,6 +513,18 @@ namespace Mizu
 
                         var exprstr = "";
                         bool localsadded = false;
+
+                        LocalBuilderEx lc = locals.Find(it => it.Name == identifier.Token.Text);
+                        if (lc != null)
+                        {
+                            Console.Error.WriteLine("Error: {0} variable already exist!", identifier.Token.Text);
+
+                            if (lc.Type == LocalType.LoopVar)
+                                Console.Error.WriteLine("- Error: Iterating variables are readonly!");
+
+                            err = true;
+                            return;
+                        }
 
 
                         List<LocalBuilder> tmplocals = new List<LocalBuilder>();
@@ -533,6 +551,7 @@ namespace Mizu
                             localsadded = true;
                         }
 
+                        //Creates an array to store all of the variables for the String.Concat call.
                         int arrymax = (tmplocals.Count*2) + 1;
                         ILgen.Emit(OpCodes.Ldc_I4, arrymax);
                         ILgen.Emit(OpCodes.Newarr, typeof(string));
@@ -570,8 +589,8 @@ namespace Mizu
                         arry_i += 1;
 
                         ILgen.Emit(OpCodes.Call,
-    typeof(System.String).GetMethod("Concat",
-    new Type[] { typeof(string[]) }));
+                            typeof(System.String).GetMethod("Concat",
+                                     new Type[] { typeof(string[]) }));
 
                         ILgen.Emit(OpCodes.Call, typeof(Mizu.Lib.Evaluator.Evaluator).GetMethod("Eval"));
 
