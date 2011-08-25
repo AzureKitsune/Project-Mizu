@@ -40,6 +40,7 @@ TAN -> @"\#";
 SQRT -> @"\%";
 EQUAL -> @"\=";
 UPPER -> @"\^";
+COMMA -> @"\,";
 NEWLINE -> @"(\r\n|\n)";
 MULTINEWLINE -> @"(\r\n|\n)+";
 WAVEY -> @"\~";
@@ -51,7 +52,7 @@ Start -> (Statements)?;
 Statements -> Statement*;
 Statement -> (EvalStatement | VarStatement | PrintStatement | MathCMDStatement) (EOF|(NEWLINE+|STATEMENTSEP+ (MULTINEWLINE?)) (EOF)?);
 EvalStatement -> QUESTION IDENTIFIER (COLON|EQUAL) AddExpr;
-VarStatement -> IDENTIFIER SET ((NUMBER|FLOAT)|OPENBR NUMBER PERIOD PERIOD NUMBER CLOSEBR|UPPER (WAVEY?));
+VarStatement -> IDENTIFIER SET ((NUMBER|FLOAT)|OPENBR NUMBER (PERIOD PERIOD NUMBER|(COMMA NUMBER)+) CLOSEBR|UPPER (WAVEY?));
 PrintStatement -> PERIOD ((IDENTIFIER?|NUMBER|FLOAT) (PERIOD)?|STRING PERIOD|SIN STRING WHITESPACE ((IDENTIFIER|NUMBER|FLOAT)WHITESPACE?)+);
 MathCMDStatement -> (ABS|SIN|TAN|SQRT) BROPEN (IDENTIFIER) BRCLOSE;
 

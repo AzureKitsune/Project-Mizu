@@ -131,6 +131,10 @@ namespace Mizu.Parser
             Patterns.Add(TokenType.UPPER, regex);
             Tokens.Add(TokenType.UPPER);
 
+            regex = new Regex(@"\,", RegexOptions.Compiled);
+            Patterns.Add(TokenType.COMMA, regex);
+            Tokens.Add(TokenType.COMMA);
+
             regex = new Regex(@"(\r\n|\n)", RegexOptions.Compiled);
             Patterns.Add(TokenType.NEWLINE, regex);
             Tokens.Add(TokenType.NEWLINE);
@@ -311,11 +315,12 @@ namespace Mizu.Parser
             SQRT    = 33,
             EQUAL   = 34,
             UPPER   = 35,
-            NEWLINE = 36,
-            MULTINEWLINE= 37,
-            WAVEY   = 38,
-            STRING  = 39,
-            COMMENTBLOCK= 40
+            COMMA   = 36,
+            NEWLINE = 37,
+            MULTINEWLINE= 38,
+            WAVEY   = 39,
+            STRING  = 40,
+            COMMENTBLOCK= 41
     }
 
     public class Token

@@ -332,8 +332,16 @@ namespace Mizu
                                             locals.Add(local); //Remembers the variable.
                                             i += 1;
                                         }
+                                        else if (next.Token.Type == TokenType.COMMA)
+                                        {
+                                            //An array.
+                                            Console.Error.WriteLine("Error: Static arrays are not supported at this time.");
+                                            err = true;
+                                            return;
+                                        }
                                         else
                                         {
+                                            #region Iterating Variable
                                             //Its a range
                                             var lowNum = stmt.Nodes[i + 2]; //Name is mis-informing. This is really the first number.
                                             var highNum = stmt.Nodes[i + 5]; //Same ^^, this is the second number.
@@ -344,10 +352,10 @@ namespace Mizu
 
                                             local.LoopHigh = int.Parse(highNum.Token.Text);
                                             local.LoopLow = int.Parse(lowNum.Token.Text);
-                                           
+
                                             local.Name = token.Token.Text;
                                             local.Type = LocalType.LoopVar;
-                                            
+
 
                                             var looplab = ILgen.DefineLabel();
                                             local.Base = ILgen.DeclareLocal(typeof(int));
@@ -387,6 +395,7 @@ namespace Mizu
                                             locals.Add(local); //Remembers the variable.
 
                                             i += 6;
+                                            #endregion
                                         }
                                     }
                                 }
@@ -404,6 +413,7 @@ namespace Mizu
                     }
                 case TokenType.PrintStatement:
                     {
+                        #region Printing
                         if (IsDebug)
                         {
                             int sline = 0, scol = 0;
@@ -550,6 +560,7 @@ namespace Mizu
                                 }
                         }
                         break;
+                        #endregion
                     }
                 case TokenType.EvalStatement:
                     {

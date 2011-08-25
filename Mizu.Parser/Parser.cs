@@ -349,33 +349,69 @@ namespace Mizu.Parser
                     }
 
                     
-                    tok = scanner.Scan(TokenType.PERIOD);
-                    n = node.CreateNode(tok, tok.ToString() );
-                    node.Token.UpdateRange(tok);
-                    node.Nodes.Add(n);
-                    if (tok.Type != TokenType.PERIOD) {
-                        tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.PERIOD.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
-                        return;
-                    }
+                    tok = scanner.LookAhead(TokenType.PERIOD, TokenType.COMMA);
+                    switch (tok.Type)
+                    {
+                        case TokenType.PERIOD:
 
-                    
-                    tok = scanner.Scan(TokenType.PERIOD);
-                    n = node.CreateNode(tok, tok.ToString() );
-                    node.Token.UpdateRange(tok);
-                    node.Nodes.Add(n);
-                    if (tok.Type != TokenType.PERIOD) {
-                        tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.PERIOD.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
-                        return;
-                    }
+                            
+                            tok = scanner.Scan(TokenType.PERIOD);
+                            n = node.CreateNode(tok, tok.ToString() );
+                            node.Token.UpdateRange(tok);
+                            node.Nodes.Add(n);
+                            if (tok.Type != TokenType.PERIOD) {
+                                tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.PERIOD.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
+                                return;
+                            }
 
-                    
-                    tok = scanner.Scan(TokenType.NUMBER);
-                    n = node.CreateNode(tok, tok.ToString() );
-                    node.Token.UpdateRange(tok);
-                    node.Nodes.Add(n);
-                    if (tok.Type != TokenType.NUMBER) {
-                        tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.NUMBER.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
-                        return;
+                            
+                            tok = scanner.Scan(TokenType.PERIOD);
+                            n = node.CreateNode(tok, tok.ToString() );
+                            node.Token.UpdateRange(tok);
+                            node.Nodes.Add(n);
+                            if (tok.Type != TokenType.PERIOD) {
+                                tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.PERIOD.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
+                                return;
+                            }
+
+                            
+                            tok = scanner.Scan(TokenType.NUMBER);
+                            n = node.CreateNode(tok, tok.ToString() );
+                            node.Token.UpdateRange(tok);
+                            node.Nodes.Add(n);
+                            if (tok.Type != TokenType.NUMBER) {
+                                tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.NUMBER.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
+                                return;
+                            }
+                            break;
+                        case TokenType.COMMA:
+                            do {
+
+                                
+                                tok = scanner.Scan(TokenType.COMMA);
+                                n = node.CreateNode(tok, tok.ToString() );
+                                node.Token.UpdateRange(tok);
+                                node.Nodes.Add(n);
+                                if (tok.Type != TokenType.COMMA) {
+                                    tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.COMMA.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
+                                    return;
+                                }
+
+                                
+                                tok = scanner.Scan(TokenType.NUMBER);
+                                n = node.CreateNode(tok, tok.ToString() );
+                                node.Token.UpdateRange(tok);
+                                node.Nodes.Add(n);
+                                if (tok.Type != TokenType.NUMBER) {
+                                    tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.NUMBER.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
+                                    return;
+                                }
+                                tok = scanner.LookAhead(TokenType.COMMA);
+                            } while (tok.Type == TokenType.COMMA);
+                            break;
+                        default:
+                            tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found.", 0x0002, 0, tok.StartPos, tok.StartPos, tok.Length));
+                            break;
                     }
 
                     
