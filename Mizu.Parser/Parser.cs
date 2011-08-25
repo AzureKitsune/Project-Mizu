@@ -660,6 +660,16 @@ namespace Mizu.Parser
                     } while (tok.Type == TokenType.IDENTIFIER
                         || tok.Type == TokenType.NUMBER
                         || tok.Type == TokenType.FLOAT);
+
+                    
+                    tok = scanner.Scan(TokenType.PERIOD);
+                    n = node.CreateNode(tok, tok.ToString() );
+                    node.Token.UpdateRange(tok);
+                    node.Nodes.Add(n);
+                    if (tok.Type != TokenType.PERIOD) {
+                        tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.PERIOD.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
+                        return;
+                    }
                     break;
                 default:
                     tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found.", 0x0002, 0, tok.StartPos, tok.StartPos, tok.Length));

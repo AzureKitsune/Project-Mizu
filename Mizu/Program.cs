@@ -57,7 +57,7 @@ namespace Mizu
                         {
                             foreach (Mizu.Parser.ParseError err in parsetree.Errors) //Report all errors.
                             {
-                                Console.Error.WriteLine("Error: {0}: {1} - {2},{3}", err.Message, err.Position, err.Line, err.Column);
+                                Console.Error.WriteLine("Error: {0} - On pos: {1}, line: {2}, col: {3}.", err.Message, err.Position, err.Line, err.Column);
                                 return;
                             }
                         }
@@ -273,7 +273,7 @@ namespace Mizu
                                             local.VariableType = typeof(int);
                                             local.Base = ILgen.DeclareLocal(local.VariableType);
 
-                                            if(IsDebug) local.Base.SetLocalSymInfo(token.Token.Text); //Set variable name for debug info.
+                                            if (IsDebug) local.Base.SetLocalSymInfo(token.Token.Text); //Set variable name for debug info.
 
                                             ILgen.Emit(OpCodes.Ldc_I4, int.Parse(next.Token.Text)); //Sets the number
                                             ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base); //Assigns the number to the variable.
@@ -511,6 +511,10 @@ namespace Mizu
 
                                             continue;
                                         }
+                                        else if (stmt.Nodes[i].Token.Type == TokenType.PERIOD)
+                                        {
+                                            break;
+                                        }
                                         else
                                         {
                                             ParseNode nd = stmt.Nodes[i];
@@ -564,6 +568,7 @@ namespace Mizu
                     }
                 case TokenType.EvalStatement:
                     {
+                        #region EvalStatement
                         var identifier = stmt.Nodes[1];
                         var expr = stmt.Nodes[3];
 
@@ -608,7 +613,7 @@ namespace Mizu
                         }
 
                         //Creates an array to store all of the variables for the String.Concat call.
-                        int arrymax = (tmplocals.Count*2) + 1;
+                        int arrymax = (tmplocals.Count * 2) + 1;
                         ILgen.Emit(OpCodes.Ldc_I4, arrymax);
                         ILgen.Emit(OpCodes.Newarr, typeof(string));
 
@@ -665,9 +670,11 @@ namespace Mizu
                         locals.Add(local); //Remembers the variable. 
 
                         break;
+                        #endregion
                     }
                 case TokenType.MathCMDStatement:
                     {
+                        #region MathCommandStatement
                         var cmd = stmt.Nodes[0];
                         var input = stmt.Nodes[2];
                         var local = locals.Find(it => it.Name == input.Token.Text);
@@ -685,7 +692,7 @@ namespace Mizu
 
                                 ILgen.MarkSequencePoint(doc, sline, scol, eline, ecol);
 
-                                
+
                             }
 
                             switch (cmd.Token.Type)
@@ -726,6 +733,7 @@ namespace Mizu
                                         break;
                                     }
                             }
+
                         }
                         else
                         {
@@ -734,6 +742,189 @@ namespace Mizu
                             Console.Error.WriteLine("Error: '{0}' doesn't exist!", input.Token.Text);
                             break;
                         }
+
+                        break;
+                        #endregion
+                    }
+                case TokenType.IfStatement:
+                    {
+
+
+                        bool hasElse = false;
+
+                        var left = stmt.Nodes[1];
+                        var com = stmt.Nodes[2];
+                        var right = stmt.Nodes[3];
+
+
+                        if (IsDebug)
+                        {
+                            int sline = 0, scol = 0;
+
+                            FindLineAndCol(code, left.Token.StartPos, ref sline, ref scol);
+
+                            int eline = 0, ecol = 0;
+
+                            FindLineAndCol(code, right.Token.EndPos, ref eline, ref ecol);
+
+                            ILgen.MarkSequencePoint(doc, sline, scol, eline, ecol);
+                        }
+
+
+                        var bodies = stmt.Nodes.FindAll(it => it.Token.Type == TokenType.Statements);
+
+                        hasElse = bodies.Count == 2;
+
+                        //Load the 'left' hand type onto the stack.
+                        switch (left.Token.Type)
+                        {
+                            case TokenType.IDENTIFIER:
+                                {
+                                    LocalBuilderEx ident = locals.Find(it => it.Name == left.Token.Text);
+
+                                    if (ident == null)
+                                    {
+                                        err = true;
+
+                                        Console.Error.WriteLine("Variable '{0}' doesn't exist.", left.Token.Text);
+
+                                        return;
+                                    }
+
+                                    ILgen.Emit(OpCodes.Ldloc, ident.Base);
+
+                                    break;
+                                }
+                            case TokenType.NUMBER:
+                                {
+                                    ILgen.Emit(OpCodes.Ldc_I4, int.Parse(left.Token.Text));
+                                    break;
+                                }
+                        }
+
+                        //Load the 'right' hand type to the stack.
+                        switch (right.Token.Type)
+                        {
+                            case TokenType.IDENTIFIER:
+                                {
+                                    LocalBuilderEx ident = locals.Find(it => it.Name == right.Token.Text);
+
+                                    if (ident == null)
+                                    {
+                                        err = true;
+
+                                        Console.Error.WriteLine("Variable '{0}' doesn't exist.", right.Token.Text);
+
+                                        return;
+                                    }
+
+                                    ILgen.Emit(OpCodes.Ldloc, ident.Base);
+
+                                    break;
+                                }
+                            case TokenType.NUMBER:
+                                {
+                                    ILgen.Emit(OpCodes.Ldc_I4, int.Parse(right.Token.Text));
+                                    break;
+                                }
+                        }
+
+                        //Load the 'comparison' function onto the stack.
+
+                        switch (com.Token.Type)
+                        {
+                            case TokenType.DEQUAL:
+                                {
+                                    // == 
+
+                                    ILgen.Emit(OpCodes.Ceq);
+
+                                    break;
+                                }
+                            case TokenType.GT:
+                                {
+                                    // >
+                                    ILgen.Emit(OpCodes.Cgt);
+                                    break;
+                                }
+                            case TokenType.LT:
+                                {
+                                    // <
+                                    ILgen.Emit(OpCodes.Clt);
+                                    break;
+                                }
+                        }
+
+                        Label endofifblock = ILgen.DefineLabel();
+
+                        Label ifbodyloc = ILgen.DefineLabel();
+
+                        Label elsebodyloc = ILgen.DefineLabel();
+
+                        if (!hasElse)
+                        {
+                            //No else block.
+                            ILgen.Emit(OpCodes.Brfalse, endofifblock);
+                        }
+                        else
+                        {
+                            //Has an else block.
+
+                            //ILgen.Emit(OpCodes.Brtrue, ifbodyloc);
+                            //ILgen.Emit(OpCodes.Brtrue, ifbodyloc);
+                            ILgen.Emit(OpCodes.Brfalse, elsebodyloc);
+                            //ILgen.Emit(OpCodes.Br, ifbodyloc);
+                        }
+
+                        // Handle the first body of an if statement.
+
+                        ILgen.MarkLabel(ifbodyloc);
+                        var ifbody = bodies[0];
+
+                        List<LocalBuilderEx> ifbody_locals = new List<LocalBuilderEx>();
+                        locals.ForEach((it) => ifbody_locals.Add(it));
+
+                        foreach (ParseNode pn in ifbody.Nodes)
+                        {
+                            bool iferr = false;
+                            HandleStatement(pn.Nodes[0], ILgen, ref ifbody_locals, out iferr);
+
+                            if (iferr)
+                            {
+                                err = true;
+                                return;
+                            }
+
+                            ILgen.Emit(OpCodes.Br, endofifblock);
+                        }
+
+                        //Handle the else bit (if any)
+                        if (hasElse)
+                        {
+                            ILgen.MarkLabel(elsebodyloc);
+
+                            var elsebody = bodies[1];
+
+                            List<LocalBuilderEx> elsebody_locals = new List<LocalBuilderEx>();
+                            locals.ForEach((it) => elsebody_locals.Add(it));
+
+                            foreach (ParseNode pn in elsebody.Nodes)
+                            {
+                                bool elerr = false;
+                                HandleStatement(pn.Nodes[0], ILgen, ref elsebody_locals, out elerr);
+
+                                if (elerr)
+                                {
+                                    err = true;
+                                    return;
+                                }
+                            }
+
+                            ILgen.Emit(OpCodes.Br, endofifblock);
+
+                        }
+
+                        ILgen.MarkLabel(endofifblock);
 
                         break;
                     }
