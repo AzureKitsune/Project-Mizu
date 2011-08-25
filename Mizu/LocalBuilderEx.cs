@@ -24,11 +24,17 @@ namespace Mizu
         public int LoopLow { get; set; }
         public int LoopHigh { get; set; }
         public Func<bool> LoopAction { get; set; }
+        public LoopDirectionEnum LoopDirection { get; set; }
         public Type VariableType { get; set; }
     }
     public enum LocalType
     {
         Var = 0,
         LoopVar = 1,
+    }
+    public enum LoopDirectionEnum
+    {
+        Up = 0,
+        Down = 1,
     }
 }

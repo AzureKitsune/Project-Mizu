@@ -202,8 +202,17 @@ namespace Mizu
 
                         //Checks if the current iterator is equal to the higher number.
                         ILgen.Emit(OpCodes.Ldloc, lastloop.Base.LocalIndex);
-                        ILgen.Emit(OpCodes.Ldc_I4, lastloop.LoopHigh);
-                        ILgen.Emit(OpCodes.Clt);
+
+                        if (lastloop.LoopDirection == LoopDirectionEnum.Up)
+                        {
+                            ILgen.Emit(OpCodes.Ldc_I4, lastloop.LoopHigh);
+                            ILgen.Emit(OpCodes.Clt);
+                        }
+                        else
+                        {
+                            ILgen.Emit(OpCodes.Ldc_I4, lastloop.LoopHigh);
+                            ILgen.Emit(OpCodes.Cgt);
+                        }
                         ILgen.Emit(OpCodes.Brtrue, lastloop.LoopLabel);
 
                     }
@@ -373,14 +382,20 @@ namespace Mizu
                                             local.LoopAction = () =>
                                             {
 
-                                                //Updates the iterator by +1
+                                                //Updates the iterator by 1
                                                 ILgen.Emit(OpCodes.Ldloc, local.Base);
                                                 ILgen.Emit(OpCodes.Ldc_I4_1);
 
                                                 if (local.LoopLow < local.LoopHigh)
+                                                {
                                                     ILgen.Emit(OpCodes.Add); //Loop up
+                                                    local.LoopDirection = LoopDirectionEnum.Up;
+                                                }
                                                 else if (local.LoopLow > local.LoopHigh)
+                                                {
                                                     ILgen.Emit(OpCodes.Sub); //Loop down.
+                                                    local.LoopDirection = LoopDirectionEnum.Down;
+                                                }
                                                 else
                                                 {
                                                     Console.Error.WriteLine("Error: Variable '{0}' should be set as {1}. In this case, looping is not allowed.", local.Name, local.LoopLow.ToString());
@@ -904,6 +919,7 @@ namespace Mizu
                         // Handle the first body of an if statement.
 
                         ILgen.MarkLabel(ifbodyloc);
+                        if (IsDebug) ILgen.BeginScope();
                         var ifbody = bodies[0];
 
                         List<LocalBuilderEx> ifbody_locals = new List<LocalBuilderEx>();
@@ -922,11 +938,13 @@ namespace Mizu
                         }
 
                         ILgen.Emit(OpCodes.Br, endofifblock);
+                        if (IsDebug) ILgen.EndScope();
 
                         //Handle the else bit (if any)
                         if (hasElse)
                         {
                             ILgen.MarkLabel(elsebodyloc);
+                            if(IsDebug) ILgen.BeginScope();
 
                             var elsebody = bodies[1];
 
@@ -946,6 +964,7 @@ namespace Mizu
                             }
 
                             ILgen.Emit(OpCodes.Br, endofifblock);
+                            if (IsDebug) ILgen.EndScope();
 
                         }
 

@@ -76,6 +76,7 @@
     <None Include="Example.miz">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="Scripts\99BottlesOfBeer.miz" />
     <None Include="Scripts\HelloWorld.miz" />
     <None Include="Scripts\IfBlockTest.miz" />
     <None Include="Scripts\OutOfMemoryTest.miz" />

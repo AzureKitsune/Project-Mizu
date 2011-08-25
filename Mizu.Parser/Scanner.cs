@@ -175,7 +175,7 @@ namespace Mizu.Parser
             Patterns.Add(TokenType.LTE, regex);
             Tokens.Add(TokenType.LTE);
 
-            regex = new Regex(@"\!\=", RegexOptions.Compiled);
+            regex = new Regex(@"(\!\=|\<\>)", RegexOptions.Compiled);
             Patterns.Add(TokenType.NOTEQUAL, regex);
             Tokens.Add(TokenType.NOTEQUAL);
 
