@@ -684,6 +684,8 @@ namespace Mizu
                                 FindLineAndCol(code, cmd.Token.EndPos, ref eline, ref ecol);
 
                                 ILgen.MarkSequencePoint(doc, sline, scol, eline, ecol);
+
+                                
                             }
 
                             switch (cmd.Token.Type)

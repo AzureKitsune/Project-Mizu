@@ -151,6 +151,42 @@ namespace Mizu.Parser
             Patterns.Add(TokenType.STRING, regex);
             Tokens.Add(TokenType.STRING);
 
+            regex = new Regex(@"\!", RegexOptions.Compiled);
+            Patterns.Add(TokenType.EXCLAM, regex);
+            Tokens.Add(TokenType.EXCLAM);
+
+            regex = new Regex(@"\>", RegexOptions.Compiled);
+            Patterns.Add(TokenType.GT, regex);
+            Tokens.Add(TokenType.GT);
+
+            regex = new Regex(@"\>\=", RegexOptions.Compiled);
+            Patterns.Add(TokenType.GTE, regex);
+            Tokens.Add(TokenType.GTE);
+
+            regex = new Regex(@"\=\=", RegexOptions.Compiled);
+            Patterns.Add(TokenType.DEQUAL, regex);
+            Tokens.Add(TokenType.DEQUAL);
+
+            regex = new Regex(@"\<", RegexOptions.Compiled);
+            Patterns.Add(TokenType.LT, regex);
+            Tokens.Add(TokenType.LT);
+
+            regex = new Regex(@"\<\=", RegexOptions.Compiled);
+            Patterns.Add(TokenType.LTE, regex);
+            Tokens.Add(TokenType.LTE);
+
+            regex = new Regex(@"\!\=", RegexOptions.Compiled);
+            Patterns.Add(TokenType.NOTEQUAL, regex);
+            Tokens.Add(TokenType.NOTEQUAL);
+
+            regex = new Regex(@"\{", RegexOptions.Compiled);
+            Patterns.Add(TokenType.OPENBRCK, regex);
+            Tokens.Add(TokenType.OPENBRCK);
+
+            regex = new Regex(@"\}", RegexOptions.Compiled);
+            Patterns.Add(TokenType.CLOSEBRCK, regex);
+            Tokens.Add(TokenType.CLOSEBRCK);
+
             regex = new Regex(@"/\*[^*]*\*+(?:[^/*][^*]*\*+)*/", RegexOptions.Compiled);
             Patterns.Add(TokenType.COMMENTBLOCK, regex);
             Tokens.Add(TokenType.COMMENTBLOCK);
@@ -286,41 +322,51 @@ namespace Mizu.Parser
             VarStatement= 6,
             PrintStatement= 7,
             MathCMDStatement= 8,
-            AddExpr = 9,
-            MultExpr= 10,
-            Atom    = 11,
+            IfStatement= 9,
+            AddExpr = 10,
+            MultExpr= 11,
+            Atom    = 12,
 
             //Terminal tokens:
-            NUMBER  = 12,
-            FLOAT   = 13,
-            PLUSMINUS= 14,
-            MULTDIV = 15,
-            BROPEN  = 16,
-            BRCLOSE = 17,
-            EOF     = 18,
-            IDENTIFIER= 19,
-            SET     = 20,
-            WHITESPACE= 21,
-            OPENBR  = 22,
-            CLOSEBR = 23,
-            PERIOD  = 24,
-            STATEMENTSEP= 25,
-            QUESTION= 26,
-            COLON   = 27,
-            COMMAND = 28,
-            ABS     = 29,
-            SIN     = 30,
-            COS     = 31,
-            TAN     = 32,
-            SQRT    = 33,
-            EQUAL   = 34,
-            UPPER   = 35,
-            COMMA   = 36,
-            NEWLINE = 37,
-            MULTINEWLINE= 38,
-            WAVEY   = 39,
-            STRING  = 40,
-            COMMENTBLOCK= 41
+            NUMBER  = 13,
+            FLOAT   = 14,
+            PLUSMINUS= 15,
+            MULTDIV = 16,
+            BROPEN  = 17,
+            BRCLOSE = 18,
+            EOF     = 19,
+            IDENTIFIER= 20,
+            SET     = 21,
+            WHITESPACE= 22,
+            OPENBR  = 23,
+            CLOSEBR = 24,
+            PERIOD  = 25,
+            STATEMENTSEP= 26,
+            QUESTION= 27,
+            COLON   = 28,
+            COMMAND = 29,
+            ABS     = 30,
+            SIN     = 31,
+            COS     = 32,
+            TAN     = 33,
+            SQRT    = 34,
+            EQUAL   = 35,
+            UPPER   = 36,
+            COMMA   = 37,
+            NEWLINE = 38,
+            MULTINEWLINE= 39,
+            WAVEY   = 40,
+            STRING  = 41,
+            EXCLAM  = 42,
+            GT      = 43,
+            GTE     = 44,
+            DEQUAL  = 45,
+            LT      = 46,
+            LTE     = 47,
+            NOTEQUAL= 48,
+            OPENBRCK= 49,
+            CLOSEBRCK= 50,
+            COMMENTBLOCK= 51
     }
 
     public class Token

@@ -188,6 +188,9 @@ namespace Mizu.Parser
                 case TokenType.MathCMDStatement:
                     Value = EvalMathCMDStatement(tree, paramlist);
                     break;
+                case TokenType.IfStatement:
+                    Value = EvalIfStatement(tree, paramlist);
+                    break;
                 case TokenType.AddExpr:
                     Value = EvalAddExpr(tree, paramlist);
                     break;
@@ -236,6 +239,11 @@ namespace Mizu.Parser
         }
 
         protected virtual object EvalMathCMDStatement(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalIfStatement(ParseTree tree, params object[] paramlist)
         {
             throw new NotImplementedException();
         }
