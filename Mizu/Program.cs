@@ -843,14 +843,39 @@ namespace Mizu
                                 }
                             case TokenType.GT:
                                 {
-                                    // >
+                                    // <
                                     ILgen.Emit(OpCodes.Cgt);
                                     break;
                                 }
                             case TokenType.LT:
                                 {
-                                    // <
+                                    // >
                                     ILgen.Emit(OpCodes.Clt);
+                                    break;
+                                }
+                            case TokenType.LTE:
+                                {
+                                    // >=
+                                    ILgen.Emit(OpCodes.Clt);
+                                    ILgen.Emit(OpCodes.Ldc_I4_0);
+                                    ILgen.Emit(OpCodes.Ceq);
+                                    break;
+                                }
+                            case TokenType.GTE:
+                                {
+                                    // <=
+                                    ILgen.Emit(OpCodes.Cgt);
+                                    ILgen.Emit(OpCodes.Ldc_I4_0);
+                                    ILgen.Emit(OpCodes.Ceq);
+                                    break;
+                                }
+                            case TokenType.NOTEQUAL:
+                                {
+                                    // <> and != are accepted.
+
+                                    ILgen.Emit(OpCodes.Ceq);
+                                    ILgen.Emit(OpCodes.Ldc_I4_0);
+                                    ILgen.Emit(OpCodes.Ceq);
                                     break;
                                 }
                         }

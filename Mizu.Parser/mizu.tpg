@@ -46,12 +46,12 @@ MULTINEWLINE -> @"(\r\n|\n)+";
 WAVEY -> @"\~";
 STRING -> @"\"".+?\""";
 EXCLAM -> @"\!";
-GT -> @"\>";
-GTE -> @"\>\=";
+GT -> @"\<";
+GTE -> @"\<\=";
 DEQUAL -> @"\=\=";
-LT -> @"\<";
-LTE -> @"\<\=";
-NOTEQUAL -> @"\!\=";
+LT -> @"\>";
+LTE -> @"\>\=";
+NOTEQUAL -> @"(\!\=|\<\>)";
 OPENBRCK -> @"\{";
 CLOSEBRCK -> @"\}";
 

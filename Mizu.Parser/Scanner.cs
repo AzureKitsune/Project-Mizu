@@ -155,11 +155,11 @@ namespace Mizu.Parser
             Patterns.Add(TokenType.EXCLAM, regex);
             Tokens.Add(TokenType.EXCLAM);
 
-            regex = new Regex(@"\>", RegexOptions.Compiled);
+            regex = new Regex(@"\<", RegexOptions.Compiled);
             Patterns.Add(TokenType.GT, regex);
             Tokens.Add(TokenType.GT);
 
-            regex = new Regex(@"\>\=", RegexOptions.Compiled);
+            regex = new Regex(@"\<\=", RegexOptions.Compiled);
             Patterns.Add(TokenType.GTE, regex);
             Tokens.Add(TokenType.GTE);
 
@@ -167,11 +167,11 @@ namespace Mizu.Parser
             Patterns.Add(TokenType.DEQUAL, regex);
             Tokens.Add(TokenType.DEQUAL);
 
-            regex = new Regex(@"\<", RegexOptions.Compiled);
+            regex = new Regex(@"\>", RegexOptions.Compiled);
             Patterns.Add(TokenType.LT, regex);
             Tokens.Add(TokenType.LT);
 
-            regex = new Regex(@"\<\=", RegexOptions.Compiled);
+            regex = new Regex(@"\>\=", RegexOptions.Compiled);
             Patterns.Add(TokenType.LTE, regex);
             Tokens.Add(TokenType.LTE);
 
