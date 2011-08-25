@@ -197,7 +197,8 @@ namespace Mizu
                     if (lastloop != null)
                     {
 
-                        lastloop.LoopAction(); //Calls actions to be called after all of the statements.
+                        if (lastloop.LoopAction()) //Calls actions to be called after all of the statements.
+                            return; //An error has occurred. Abort.
 
                         //Checks if the current iterator is equal to the higher number.
                         ILgen.Emit(OpCodes.Ldloc, lastloop.Base.LocalIndex);
@@ -264,16 +265,36 @@ namespace Mizu
                                     {
                                         i += 1;
                                         var next = stmt.Nodes[i + 1];
-                                        if (next.Token.Type == TokenType.NUMBER)
+                                        if (next.Token.Type == TokenType.NUMBER) //Integers
                                         {
                                             //Declares a variable and leaves a reference to it.
 
                                             LocalBuilderEx local = new LocalBuilderEx();
-                                            local.Base = ILgen.DeclareLocal(typeof(int));
+                                            local.VariableType = typeof(int);
+                                            local.Base = ILgen.DeclareLocal(local.VariableType);
 
                                             if(IsDebug) local.Base.SetLocalSymInfo(token.Token.Text); //Set variable name for debug info.
 
                                             ILgen.Emit(OpCodes.Ldc_I4, int.Parse(next.Token.Text)); //Sets the number
+                                            ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base); //Assigns the number to the variable.
+
+                                            local.Name = token.Token.Text;
+                                            local.Type = LocalType.Var;
+
+                                            locals.Add(local); //Remembers the variable.
+                                            i += 1;
+                                        }
+                                        else if (next.Token.Type == TokenType.FLOAT)
+                                        {
+                                            //Declares a variable and leaves a reference to it.
+
+                                            LocalBuilderEx local = new LocalBuilderEx();
+                                            local.VariableType = typeof(float);
+                                            local.Base = ILgen.DeclareLocal(local.VariableType);
+
+                                            if (IsDebug) local.Base.SetLocalSymInfo(token.Token.Text); //Set variable name for debug info.
+
+                                            ILgen.Emit(OpCodes.Ldc_R4, float.Parse(next.Token.Text)); //Sets the number
                                             ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base); //Assigns the number to the variable.
 
                                             local.Name = token.Token.Text;
@@ -298,14 +319,14 @@ namespace Mizu
                                             {
                                                 //If theres a WAVEY symbol, print the variable name.
                                                 var wavey = stmt.Nodes[i + 2];
-                                                ILgen.Emit(OpCodes.Ldstr,local.Name + " = ");
+                                                ILgen.Emit(OpCodes.Ldstr, local.Name + " = ");
                                                 ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("Write", new Type[] { typeof(string) }));
                                                 i += 1;
                                             }
                                             catch (Exception) { }
 
                                             ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("ReadLine")); //Sets the number from STDIN.
-                                            ILgen.Emit(OpCodes.Call,typeof(Convert).GetMethod("ToInt32", new Type[]{typeof(string)})); //Parses it into an integer.
+                                            ILgen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToInt32", new Type[] { typeof(string) })); //Parses it into an integer.
                                             ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base); //Assigns the number to the variable.
 
                                             locals.Add(local); //Remembers the variable.
@@ -314,8 +335,8 @@ namespace Mizu
                                         else
                                         {
                                             //Its a range
-                                            var lowNum = stmt.Nodes[i + 2];
-                                            var highNum = stmt.Nodes[i + 5];
+                                            var lowNum = stmt.Nodes[i + 2]; //Name is mis-informing. This is really the first number.
+                                            var highNum = stmt.Nodes[i + 5]; //Same ^^, this is the second number.
 
 
 
@@ -323,9 +344,15 @@ namespace Mizu
 
                                             local.LoopHigh = int.Parse(highNum.Token.Text);
                                             local.LoopLow = int.Parse(lowNum.Token.Text);
+                                           
+                                            local.Name = token.Token.Text;
+                                            local.Type = LocalType.LoopVar;
+                                            
 
                                             var looplab = ILgen.DefineLabel();
                                             local.Base = ILgen.DeclareLocal(typeof(int));
+
+                                            local.LoopLabel = looplab;
 
                                             if (IsDebug) local.Base.SetLocalSymInfo(token.Token.Text); //Set variable name for debug info.
 
@@ -337,18 +364,25 @@ namespace Mizu
 
                                             local.LoopAction = () =>
                                             {
-                                             
+
                                                 //Updates the iterator by +1
                                                 ILgen.Emit(OpCodes.Ldloc, local.Base);
                                                 ILgen.Emit(OpCodes.Ldc_I4_1);
-                                                ILgen.Emit(OpCodes.Add);
+
+                                                if (local.LoopLow < local.LoopHigh)
+                                                    ILgen.Emit(OpCodes.Add); //Loop up
+                                                else if (local.LoopLow > local.LoopHigh)
+                                                    ILgen.Emit(OpCodes.Sub); //Loop down.
+                                                else
+                                                {
+                                                    Console.Error.WriteLine("Error: Variable '{0}' should be set as {1}. In this case, looping is not allowed.", local.Name, local.LoopLow.ToString());
+                                                    return true; //Abort because of error.
+                                                }
+
                                                 ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base);
+                                                return false;
                                             };
 
-
-                                            local.Name = token.Token.Text;
-                                            local.Type = LocalType.LoopVar;
-                                            local.LoopLabel = looplab;
 
                                             locals.Add(local); //Remembers the variable.
 
@@ -402,17 +436,28 @@ namespace Mizu
 
                                     ILgen.Emit(OpCodes.Ldloc, local.Base);
 
-                                    ILgen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToString", new Type[] { typeof(int) })); //Converts the integer to a string.
+                                    ILgen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToString", new Type[] { local.VariableType })); //Converts the integer to a string.
 
                                     ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] { typeof(string) })); //Prints the newly formed string.
                                     break;
                                 }
+                            case TokenType.FLOAT:
                             case TokenType.NUMBER:
                                 {
-                                    //Prints a number
-                                    ILgen.Emit(OpCodes.Ldc_I4, int.Parse(outpt.Token.Text));
+                                    //Prints a integer or float (decimal) number.
+                                    if (outpt.Token.Type == TokenType.NUMBER) //if its a integer
+                                    {
+                                        ILgen.Emit(OpCodes.Ldc_I4, int.Parse(outpt.Token.Text));
 
-                                    ILgen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToString", new Type[] { typeof(int) })); //Converts the integer to a string.
+                                        ILgen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToString", new Type[] { typeof(int) })); //Converts the integer to a string.
+                                    }
+                                    else
+                                    {
+                                        //Otherwise, its a float (decimal).
+                                        ILgen.Emit(OpCodes.Ldc_R4, float.Parse(outpt.Token.Text));
+
+                                        ILgen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToString", new Type[] { typeof(float) })); //Converts the integer to a string.
+                                    }
 
                                     ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] { typeof(string) })); //Prints the newly formed string.
                                     break;
@@ -514,12 +559,12 @@ namespace Mizu
                         var exprstr = "";
                         bool localsadded = false;
 
-                        LocalBuilderEx lc = locals.Find(it => it.Name == identifier.Token.Text);
-                        if (lc != null)
+                        LocalBuilderEx lct = locals.Find(it => it.Name == identifier.Token.Text);
+                        if (lct != null)
                         {
                             Console.Error.WriteLine("Error: {0} variable already exist!", identifier.Token.Text);
 
-                            if (lc.Type == LocalType.LoopVar)
+                            if (lct.Type == LocalType.LoopVar)
                                 Console.Error.WriteLine("- Error: Iterating variables are readonly!");
 
                             err = true;

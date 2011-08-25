@@ -15,7 +15,8 @@
 
 
 // highlight numbers in red and symbols in blue
-[Color(255, 0, 0)] NUMBER -> @"[0-9]+"; 
+[Color(255, 0, 0)] NUMBER -> @"(\-)?[0-9]+";
+[Color(255, 0, 0)] FLOAT -> @"(\-)?[0-9]+\.[0-9]+"; 
 
 [Color(0, 0, 255)] PLUSMINUS -> @"(\+|-)"; 
 [Color(0, 0, 255)] MULTDIV -> @"\*|/"; 
@@ -40,6 +41,7 @@ SQRT -> @"\%";
 EQUAL -> @"\=";
 UPPER -> @"\^";
 NEWLINE -> @"(\r\n|\n)";
+MULTINEWLINE -> @"(\r\n|\n)+";
 WAVEY -> @"\~";
 STRING -> @"\"".+?\""";
 
@@ -47,13 +49,13 @@ STRING -> @"\"".+?\""";
 
 Start -> (Statements)?;
 Statements -> Statement*;
-Statement -> (EvalStatement | VarStatement | PrintStatement | MathCMDStatement) (EOF|(NEWLINE+|STATEMENTSEP+) (EOF)?);
+Statement -> (EvalStatement | VarStatement | PrintStatement | MathCMDStatement) (EOF|(NEWLINE+|STATEMENTSEP+ (MULTINEWLINE?)) (EOF)?);
 EvalStatement -> QUESTION IDENTIFIER (COLON|EQUAL) AddExpr;
-VarStatement -> IDENTIFIER SET (NUMBER|OPENBR NUMBER PERIOD PERIOD NUMBER CLOSEBR|UPPER (WAVEY?));
-PrintStatement -> PERIOD ((IDENTIFIER?|NUMBER)|STRING PERIOD|SIN STRING WHITESPACE ((IDENTIFIER|NUMBER)WHITESPACE?)+);
+VarStatement -> IDENTIFIER SET ((NUMBER|FLOAT)|OPENBR NUMBER PERIOD PERIOD NUMBER CLOSEBR|UPPER (WAVEY?));
+PrintStatement -> PERIOD ((IDENTIFIER?|NUMBER|FLOAT) (PERIOD)?|STRING PERIOD|SIN STRING WHITESPACE ((IDENTIFIER|NUMBER|FLOAT)WHITESPACE?)+);
 MathCMDStatement -> (ABS|SIN|TAN|SQRT) BROPEN (IDENTIFIER) BRCLOSE;
 
 //From the tinypg article.
 AddExpr     -> MultExpr (PLUSMINUS MultExpr)*;
 MultExpr    -> Atom (MULTDIV Atom)*;
-Atom        -> NUMBER|IDENTIFIER|BROPEN AddExpr BRCLOSE;
+Atom        -> NUMBER|FLOAT|IDENTIFIER|BROPEN AddExpr BRCLOSE;

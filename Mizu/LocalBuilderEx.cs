@@ -23,7 +23,8 @@ namespace Mizu
         public Label LoopLabel { get; set; }
         public int LoopLow { get; set; }
         public int LoopHigh { get; set; }
-        public Action LoopAction { get; set; }
+        public Func<bool> LoopAction { get; set; }
+        public Type VariableType { get; set; }
     }
     public enum LocalType
     {

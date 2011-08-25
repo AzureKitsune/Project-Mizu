@@ -35,9 +35,13 @@ namespace Mizu.Parser
             SkipList = new List<TokenType>();
             SkipList.Add(TokenType.COMMENTBLOCK);
 
-            regex = new Regex(@"[0-9]+", RegexOptions.Compiled);
+            regex = new Regex(@"(\-)?[0-9]+", RegexOptions.Compiled);
             Patterns.Add(TokenType.NUMBER, regex);
             Tokens.Add(TokenType.NUMBER);
+
+            regex = new Regex(@"(\-)?[0-9]+\.[0-9]+", RegexOptions.Compiled);
+            Patterns.Add(TokenType.FLOAT, regex);
+            Tokens.Add(TokenType.FLOAT);
 
             regex = new Regex(@"(\+|-)", RegexOptions.Compiled);
             Patterns.Add(TokenType.PLUSMINUS, regex);
@@ -130,6 +134,10 @@ namespace Mizu.Parser
             regex = new Regex(@"(\r\n|\n)", RegexOptions.Compiled);
             Patterns.Add(TokenType.NEWLINE, regex);
             Tokens.Add(TokenType.NEWLINE);
+
+            regex = new Regex(@"(\r\n|\n)+", RegexOptions.Compiled);
+            Patterns.Add(TokenType.MULTINEWLINE, regex);
+            Tokens.Add(TokenType.MULTINEWLINE);
 
             regex = new Regex(@"\~", RegexOptions.Compiled);
             Patterns.Add(TokenType.WAVEY, regex);
@@ -280,32 +288,34 @@ namespace Mizu.Parser
 
             //Terminal tokens:
             NUMBER  = 12,
-            PLUSMINUS= 13,
-            MULTDIV = 14,
-            BROPEN  = 15,
-            BRCLOSE = 16,
-            EOF     = 17,
-            IDENTIFIER= 18,
-            SET     = 19,
-            WHITESPACE= 20,
-            OPENBR  = 21,
-            CLOSEBR = 22,
-            PERIOD  = 23,
-            STATEMENTSEP= 24,
-            QUESTION= 25,
-            COLON   = 26,
-            COMMAND = 27,
-            ABS     = 28,
-            SIN     = 29,
-            COS     = 30,
-            TAN     = 31,
-            SQRT    = 32,
-            EQUAL   = 33,
-            UPPER   = 34,
-            NEWLINE = 35,
-            WAVEY   = 36,
-            STRING  = 37,
-            COMMENTBLOCK= 38
+            FLOAT   = 13,
+            PLUSMINUS= 14,
+            MULTDIV = 15,
+            BROPEN  = 16,
+            BRCLOSE = 17,
+            EOF     = 18,
+            IDENTIFIER= 19,
+            SET     = 20,
+            WHITESPACE= 21,
+            OPENBR  = 22,
+            CLOSEBR = 23,
+            PERIOD  = 24,
+            STATEMENTSEP= 25,
+            QUESTION= 26,
+            COLON   = 27,
+            COMMAND = 28,
+            ABS     = 29,
+            SIN     = 30,
+            COS     = 31,
+            TAN     = 32,
+            SQRT    = 33,
+            EQUAL   = 34,
+            UPPER   = 35,
+            NEWLINE = 36,
+            MULTINEWLINE= 37,
+            WAVEY   = 38,
+            STRING  = 39,
+            COMMENTBLOCK= 40
     }
 
     public class Token
