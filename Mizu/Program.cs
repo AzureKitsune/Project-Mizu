@@ -894,9 +894,9 @@ namespace Mizu
                                 err = true;
                                 return;
                             }
-
-                            ILgen.Emit(OpCodes.Br, endofifblock);
                         }
+
+                        ILgen.Emit(OpCodes.Br, endofifblock);
 
                         //Handle the else bit (if any)
                         if (hasElse)
