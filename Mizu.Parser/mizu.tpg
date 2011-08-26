@@ -23,7 +23,7 @@
 [Color(0, 0, 255)] BROPEN -> @"\("; 
 [Color(0, 0, 255)] BRCLOSE -> @"\)";
 EOF -> @"^\s*$";
-IDENTIFIER -> @"[a-zA-Z_][a-zA-Z0-9_]*";
+[Color(0, 0, 255)] IDENTIFIER -> @"[a-zA-Z_][a-zA-Z0-9_]*";
 SET -> @"\`";
 WHITESPACE       -> @"\s+";
 OPENBR -> @"\[";
@@ -54,18 +54,21 @@ LTE -> @"\>\=";
 NOTEQUAL -> @"(\!\=|\<\>)";
 OPENBRCK -> @"\{";
 CLOSEBRCK -> @"\}";
+STAR -> @"\*";
 
 [Skip] COMMENTBLOCK     -> @"/\*[^*]*\*+(?:[^/*][^*]*\*+)*/(\r\n|\n)";
 
 
 Start -> (Statements)?;
 Statements -> Statement*;
-Statement -> (EvalStatement | VarStatement | PrintStatement | MathCMDStatement | IfStatement) (EOF|(NEWLINE+|STATEMENTSEP+ (MULTINEWLINE?)) (EOF)?);
+Statement -> (EvalStatement | VarStatement | PrintStatement | MathCMDStatement | IfStatement | SwitchStatement) (EOF|(NEWLINE+|STATEMENTSEP+ (MULTINEWLINE?)) (EOF)?);
 EvalStatement -> QUESTION IDENTIFIER (COLON|EQUAL) AddExpr;
 VarStatement -> IDENTIFIER SET ((NUMBER|FLOAT)|OPENBR NUMBER (PERIOD PERIOD NUMBER|(COMMA NUMBER)+) CLOSEBR|UPPER (WAVEY?));
 PrintStatement -> PERIOD ((IDENTIFIER?|NUMBER|FLOAT) (PERIOD)?|STRING PERIOD|SIN STRING WHITESPACE ((IDENTIFIER|NUMBER|FLOAT)WHITESPACE?)+ PERIOD);
 MathCMDStatement -> (ABS|SIN|TAN|SQRT) BROPEN (IDENTIFIER) BRCLOSE;
-IfStatement -> OPENBR (IDENTIFIER|NUMBER|FLOAT) (NOTEQUAL|GTE|GT|DEQUAL|LTE|LT) (IDENTIFIER|NUMBER|FLOAT) COLON OPENBRCK (NEWLINE)? Statements CLOSEBRCK (COMMA (NEWLINE)? OPENBRCK (NEWLINE)? Statements CLOSEBRCK)? CLOSEBR; 
+IfStatement -> OPENBR (IDENTIFIER|NUMBER|FLOAT) (NOTEQUAL|GTE|GT|DEQUAL|LTE|LT) (IDENTIFIER|NUMBER|FLOAT) COLON OPENBRCK (NEWLINE)? Statements CLOSEBRCK (COMMA (NEWLINE)? OPENBRCK (NEWLINE)? Statements CLOSEBRCK)? CLOSEBR;
+SwitchStatement -> EXCLAM OPENBR IDENTIFIER COLON OPENBRCK (NEWLINE)? (SwitchCaseStatement)+ (NEWLINE?) CLOSEBRCK CLOSEBR;
+SwitchCaseStatement -> (IDENTIFIER|NUMBER|FLOAT|STAR) COLON NEWLINE Statements;
 
 //From the tinypg article.
 AddExpr     -> MultExpr (PLUSMINUS MultExpr)*;

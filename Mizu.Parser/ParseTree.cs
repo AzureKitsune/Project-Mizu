@@ -191,6 +191,12 @@ namespace Mizu.Parser
                 case TokenType.IfStatement:
                     Value = EvalIfStatement(tree, paramlist);
                     break;
+                case TokenType.SwitchStatement:
+                    Value = EvalSwitchStatement(tree, paramlist);
+                    break;
+                case TokenType.SwitchCaseStatement:
+                    Value = EvalSwitchCaseStatement(tree, paramlist);
+                    break;
                 case TokenType.AddExpr:
                     Value = EvalAddExpr(tree, paramlist);
                     break;
@@ -244,6 +250,16 @@ namespace Mizu.Parser
         }
 
         protected virtual object EvalIfStatement(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalSwitchStatement(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalSwitchCaseStatement(ParseTree tree, params object[] paramlist)
         {
             throw new NotImplementedException();
         }

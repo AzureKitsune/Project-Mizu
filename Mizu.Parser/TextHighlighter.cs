@@ -495,6 +495,9 @@ namespace Mizu.Parser
                     case TokenType.BRCLOSE:
                         sb.Append(@"{{\cf6 ");
                         break;
+                    case TokenType.IDENTIFIER:
+                        sb.Append(@"{{\cf7 ");
+                        break;
 
                 default:
                     sb.Append(@"{{\cf0 ");
@@ -505,7 +508,7 @@ namespace Mizu.Parser
         // define the color palette to be used here
         private void AddRtfHeader(StringBuilder sb)
         {
-            sb.Insert(0, @"{\rtf1\ansi\deff0{\fonttbl{\f0\fnil\fcharset0 Consolas;}}{\colortbl;\red255\green0\blue0;\red255\green0\blue0;\red0\green0\blue255;\red0\green0\blue255;\red0\green0\blue255;\red0\green0\blue255;}\viewkind4\uc1\pard\lang1033\f0\fs20");
+            sb.Insert(0, @"{\rtf1\ansi\deff0{\fonttbl{\f0\fnil\fcharset0 Consolas;}}{\colortbl;\red255\green0\blue0;\red255\green0\blue0;\red0\green0\blue255;\red0\green0\blue255;\red0\green0\blue255;\red0\green0\blue255;\red0\green0\blue255;}\viewkind4\uc1\pard\lang1033\f0\fs20");
         }
 
         private void AddRtfEnd(StringBuilder sb)
