@@ -364,10 +364,11 @@ namespace Mizu
 
                                             local.Name = token.Token.Text;
                                             local.Type = LocalType.LoopVar;
+                                            local.VariableType = typeof(int);
 
 
                                             var looplab = ILgen.DefineLabel();
-                                            local.Base = ILgen.DeclareLocal(typeof(int));
+                                            local.Base = ILgen.DeclareLocal(local.VariableType);
 
                                             local.LoopLabel = looplab;
 

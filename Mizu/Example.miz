@@ -1,7 +1,4 @@
-﻿bottles`[99..-1]
-[bottles!=0:{
-?lessbot=bottles-1
-.$"{0} bottles of beer on the wall. {0} bottles of beer! Take one down, pass it around. {1} of beer on the wall!" bottles lessbot.
-},{
-."0 bottles of beer on the wall!".
+﻿balls`[1..11]
+[balls<5:{
+.balls.
 }]
