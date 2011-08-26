@@ -173,7 +173,7 @@ namespace Mizu
 
             ILgen.BeginExceptionBlock(); //Start a try statement.
 
-            if (IsDebug) ILgen.BeginScope();
+           ILgen.BeginScope();
 
             // Generate body IL
             bool err = false;
@@ -220,7 +220,7 @@ namespace Mizu
                 }
             }
 
-            if (IsDebug) ILgen.EndScope();
+            ILgen.EndScope();
 
             ILgen.BeginCatchBlock(typeof(Exception)); //Ends the try statement and starts the catch section.
 
@@ -919,7 +919,7 @@ namespace Mizu
                         // Handle the first body of an if statement.
 
                         ILgen.MarkLabel(ifbodyloc);
-                        if (IsDebug) ILgen.BeginScope();
+                        ILgen.BeginScope();
                         var ifbody = bodies[0];
 
                         List<LocalBuilderEx> ifbody_locals = new List<LocalBuilderEx>();
@@ -938,13 +938,13 @@ namespace Mizu
                         }
 
                         ILgen.Emit(OpCodes.Br, endofifblock);
-                        if (IsDebug) ILgen.EndScope();
+                        ILgen.EndScope();
 
                         //Handle the else bit (if any)
                         if (hasElse)
                         {
                             ILgen.MarkLabel(elsebodyloc);
-                            if(IsDebug) ILgen.BeginScope();
+                            ILgen.BeginScope();
 
                             var elsebody = bodies[1];
 
@@ -964,7 +964,7 @@ namespace Mizu
                             }
 
                             ILgen.Emit(OpCodes.Br, endofifblock);
-                            if (IsDebug) ILgen.EndScope();
+                            ILgen.EndScope();
 
                         }
 
