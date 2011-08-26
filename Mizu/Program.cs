@@ -8,6 +8,7 @@ using System.IO;
 using Mizu.Parser;
 using System.Diagnostics;
 using System.Diagnostics.SymbolStore;
+using System.Dynamic;
 
 namespace Mizu
 {
@@ -987,7 +988,10 @@ namespace Mizu
                     {
                         //Report an error and stop compile process.
                         err = true;
-                        Console.Error.WriteLine("Error: Unsupported statement: {0}", stmt.ToString());
+
+                        dynamic info = GetLineAndCol(code, stmt.Token.StartPos);
+
+                        Console.Error.WriteLine("Error: Unsupported statement: {0}. Line: {1}, Col: {2}", stmt.ToString(), info.Line, info.Col);
                         return;
                     }
             }
@@ -1001,6 +1005,18 @@ namespace Mizu
                 res += GenerateExprStr(pn);
             }
             return res;
+        }
+
+        private static ExpandoObject GetLineAndCol(string src, int pos)
+        {
+            int line = 0, col = 0;
+
+            dynamic eo = new ExpandoObject();
+            FindLineAndCol(src, pos, ref line, ref col);
+
+            eo.Line = line;
+            eo.Col = col;
+            return eo;
         }
         private static void FindLineAndCol(string src, int pos, ref int line, ref int col)
         {
