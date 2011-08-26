@@ -16,6 +16,7 @@ namespace Mizu
     {
         static bool IsDebug = false;
         static bool IsRun = false;
+        static bool NoEval = false;
         static bool IsInvalid = false; //To generate a invalid exe.
         static ISymbolDocumentWriter doc = null; //Debug info from  -> http://blogs.msdn.com/b/jmstall/archive/2005/02/03/366429.aspx
         static string code = null;
@@ -102,6 +103,14 @@ namespace Mizu
                                                     Console.WriteLine("- Executable will run when completed.");
 
                                                 IsRun = true;
+                                                break;
+                                            }
+                                        case "/noeval":
+                                            {
+                                                if (!NoEval)
+                                                    Console.WriteLine("- Executable will not depend on Mizu.Lib.Evaluator.dll. NOTE: This is experimental.");
+
+                                                NoEval = true;
                                                 break;
                                             }
                                     }
@@ -606,99 +615,145 @@ namespace Mizu
                         var identifier = stmt.Nodes[1];
                         var expr = stmt.Nodes[3];
 
-                        var exprstr = "";
-                        bool localsadded = false;
-
-                        LocalBuilderEx lct = locals.Find(it => it.Name == identifier.Token.Text);
-                        if (lct != null)
-                        {
-                            dynamic info = GetLineAndCol(code, stmt.Token.StartPos);
-
-                            Console.Error.WriteLine("Error: {0} variable already exist! Line: {1}, Col: {2}", identifier.Token.Text, info.Line, info.Col);
-
-                            if (lct.Type == LocalType.LoopVar)
-                                Console.Error.WriteLine("- Error: Iterating variables are readonly!");
-
-                            err = true;
-                            return;
-                        }
-
-
-                        List<LocalBuilder> tmplocals = new List<LocalBuilder>();
-
-                        foreach (LocalBuilderEx lc in locals)
-                        {
-
-                            ILgen.Emit(OpCodes.Ldstr, "var " + lc.Name + "={0}");
-
-                            ILgen.Emit(OpCodes.Ldloc, (LocalBuilder)lc.Base);
-
-                            ILgen.Emit(OpCodes.Call,
-                                typeof(Convert).GetMethod("ToString", new Type[] { typeof(int) }));
-
-                            ILgen.Emit(OpCodes.Call,
-                                typeof(System.String).GetMethod("Format",
-                                new Type[] { typeof(string), typeof(string) }));
-
-                            LocalBuilder lb = ILgen.DeclareLocal(typeof(string));
-                            ILgen.Emit(OpCodes.Stloc, lb);
-
-                            tmplocals.Add(lb);
-
-                            localsadded = true;
-                        }
-
-                        //Creates an array to store all of the variables for the String.Concat call.
-                        int arrymax = (tmplocals.Count * 2) + 1;
-                        ILgen.Emit(OpCodes.Ldc_I4, arrymax);
-                        ILgen.Emit(OpCodes.Newarr, typeof(string));
-
-                        int arry_i = 0;
-
-                        if (localsadded)
-                        {
-                            foreach (LocalBuilder tmploc in tmplocals)
-                            {
-                                ILgen.Emit(OpCodes.Dup);
-                                ILgen.Emit(OpCodes.Ldc_I4, arry_i);
-                                ILgen.Emit(OpCodes.Ldloc, tmploc);
-                                ILgen.Emit(OpCodes.Stelem_Ref);
-
-                                arry_i += 1;
-
-
-                                ILgen.Emit(OpCodes.Dup);
-                                ILgen.Emit(OpCodes.Ldc_I4, arry_i);
-                                ILgen.Emit(OpCodes.Ldstr, ";");
-                                ILgen.Emit(OpCodes.Stelem_Ref);
-
-                                arry_i += 1;
-                            }
-                        }
-
-                        ILgen.Emit(OpCodes.Dup);
-                        ILgen.Emit(OpCodes.Ldc_I4, arry_i);
-
-                        exprstr += GenerateExprStr(expr);
-                        ILgen.Emit(OpCodes.Ldstr, exprstr);
-
-                        ILgen.Emit(OpCodes.Stelem_Ref);
-                        arry_i += 1;
-
-                        ILgen.Emit(OpCodes.Call,
-                            typeof(System.String).GetMethod("Concat",
-                                     new Type[] { typeof(string[]) }));
-
-                        ILgen.Emit(OpCodes.Call, typeof(Mizu.Lib.Evaluator.Evaluator).GetMethod("Eval"));
-
                         LocalBuilderEx local = new LocalBuilderEx();
-                        local.Base = ILgen.DeclareLocal(typeof(int)); //Sets the number
+
+                        if (!NoEval)
+                        {
+                            #region Eval using Mizu.Lib.Evaluator
+
+                            local.VariableType = typeof(int);
+
+                            local.Base = ILgen.DeclareLocal(local.VariableType); //Sets the number
+
+                            var exprstr = "";
+                            bool localsadded = false;
+
+                            LocalBuilderEx lct = locals.Find(it => it.Name == identifier.Token.Text);
+                            if (lct != null)
+                            {
+                                dynamic info = GetLineAndCol(code, stmt.Token.StartPos);
+
+                                Console.Error.WriteLine("Error: {0} variable already exist! Line: {1}, Col: {2}", identifier.Token.Text, info.Line, info.Col);
+
+                                if (lct.Type == LocalType.LoopVar)
+                                    Console.Error.WriteLine("- Error: Iterating variables are readonly!");
+
+                                err = true;
+                                return;
+                            }
+
+
+                            List<LocalBuilder> tmplocals = new List<LocalBuilder>();
+
+                            foreach (LocalBuilderEx lc in locals)
+                            {
+
+                                ILgen.Emit(OpCodes.Ldstr, "var " + lc.Name + "={0}");
+
+                                ILgen.Emit(OpCodes.Ldloc, (LocalBuilder)lc.Base);
+
+                                ILgen.Emit(OpCodes.Call,
+                                    typeof(Convert).GetMethod("ToString", new Type[] { typeof(int) }));
+
+                                ILgen.Emit(OpCodes.Call,
+                                    typeof(System.String).GetMethod("Format",
+                                    new Type[] { typeof(string), typeof(string) }));
+
+                                LocalBuilder lb = ILgen.DeclareLocal(typeof(string));
+                                ILgen.Emit(OpCodes.Stloc, lb);
+
+                                tmplocals.Add(lb);
+
+                                localsadded = true;
+                            }
+
+                            //Creates an array to store all of the variables for the String.Concat call.
+                            int arrymax = (tmplocals.Count * 2) + 1;
+                            ILgen.Emit(OpCodes.Ldc_I4, arrymax);
+                            ILgen.Emit(OpCodes.Newarr, typeof(string));
+
+                            int arry_i = 0;
+
+                            if (localsadded)
+                            {
+                                foreach (LocalBuilder tmploc in tmplocals)
+                                {
+                                    ILgen.Emit(OpCodes.Dup);
+                                    ILgen.Emit(OpCodes.Ldc_I4, arry_i);
+                                    ILgen.Emit(OpCodes.Ldloc, tmploc);
+                                    ILgen.Emit(OpCodes.Stelem_Ref);
+
+                                    arry_i += 1;
+
+
+                                    ILgen.Emit(OpCodes.Dup);
+                                    ILgen.Emit(OpCodes.Ldc_I4, arry_i);
+                                    ILgen.Emit(OpCodes.Ldstr, ";");
+                                    ILgen.Emit(OpCodes.Stelem_Ref);
+
+                                    arry_i += 1;
+                                }
+                            }
+
+                            ILgen.Emit(OpCodes.Dup);
+                            ILgen.Emit(OpCodes.Ldc_I4, arry_i);
+
+                            exprstr += GenerateExprStr(expr);
+                            ILgen.Emit(OpCodes.Ldstr, exprstr);
+
+                            ILgen.Emit(OpCodes.Stelem_Ref);
+                            arry_i += 1;
+
+                            ILgen.Emit(OpCodes.Call,
+                                typeof(System.String).GetMethod("Concat",
+                                         new Type[] { typeof(string[]) }));
+
+                            ILgen.Emit(OpCodes.Call, typeof(Mizu.Lib.Evaluator.Evaluator).GetMethod("Eval"));
+
+
+
+                            ILgen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToInt32", new Type[] { typeof(string) })); //Parses it into an integer.
+
+                            ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base); //Assigns the number to the variable.
+                            #endregion
+                        }
+                        else
+                        {
+                            if (ExprStrHasVar(expr))
+                            {
+                                HandleMathExpr(ILgen, locals, expr);
+
+                                local.VariableType = typeof(float);
+
+                                local.Base = ILgen.DeclareLocal(local.VariableType); //Sets the number;
+                            }
+                            else
+                            {
+                                //Optimize. If the equation is constant, might as well calculate the result and place it in the code.
+
+                                var res = Mizu.Lib.Evaluator.Evaluator.Eval(GenerateExprStr(expr));
+
+                                if (res.Contains("."))
+                                {
+                                    local.VariableType = typeof(float);
+
+                                    local.Base = ILgen.DeclareLocal(local.VariableType); //Sets the number
+
+                                    ILgen.Emit(OpCodes.Ldc_R4, float.Parse(res));
+                                }
+                                else
+                                {
+                                    local.VariableType = typeof(int);
+
+                                    local.Base = ILgen.DeclareLocal(local.VariableType); //Sets the number
+
+                                    ILgen.Emit(OpCodes.Ldc_I4, int.Parse(res));
+                                }
+                            }
+                            ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base); //Assigns the number to the variable.
+                        }
 
                         if (IsDebug) local.Base.SetLocalSymInfo(identifier.Token.Text);
-
-                        ILgen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToInt32", new Type[] { typeof(string) })); //Parses it into an integer.
-
-                        ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base); //Assigns the number to the variable.
 
                         local.Name = identifier.Token.Text;
                         local.Type = LocalType.Var;
@@ -1023,6 +1078,110 @@ namespace Mizu
             }
             err = false;
         }
+        static void HandleMathExpr(ILGenerator il, List<LocalBuilderEx> locals, ParseNode expr)
+        {
+            switch (expr.Token.Type)
+            {
+                case TokenType.AddExpr:
+                    {
+                        var nodes = expr.Nodes;
+                        nodes.FindAll(it => it.Token.Type == TokenType.MultExpr).ForEach(it => HandleMathExpr(il, locals, it));
+                        nodes.FindAll(it => it.Token.Type == TokenType.PLUSMINUS).ForEach(it => HandleMathExpr(il, locals, it));
+                        break;
+                    }
+                case TokenType.PLUSMINUS:
+                    {
+                        switch (expr.Token.Text)
+                        {
+                            case "+": il.Emit(OpCodes.Add); break;
+                            case "-": il.Emit(OpCodes.Sub); break;
+                        }
+                        break;
+                    }
+                case TokenType.MULTDIV:
+                    {
+                        switch (expr.Token.Text)
+                        {
+                            case "*": il.Emit(OpCodes.Mul_Ovf); break;
+                            case "/":
+                                {
+                                    /*var p1 = il.DeclareLocal(typeof(int));
+                                    var p2 = il.DeclareLocal(typeof(int));
+
+                                    il.Emit(OpCodes.Stloc, p1);
+                                    il.Emit(OpCodes.Stloc, p2);
+
+                                    il.Emit(OpCodes.Ldloc, p2);
+                                    il.Emit(OpCodes.Ldloc, p1); */
+
+                                    il.Emit(OpCodes.Div);
+                                    break;
+                                }
+                        }
+                        break;
+                    }
+                case TokenType.MultExpr:
+                    {
+                        int nums = 0;
+                        ParseNode ex = null;
+
+                        for (int i = 0; i < expr.Nodes.Count; i++)
+                        {
+                            switch (expr.Nodes[i].Token.Type)
+                            {
+                                case TokenType.Atom:
+                                    {
+                                        HandleMathExpr(il, locals, expr.Nodes[i]);
+                                        nums += 1;
+
+                                        if (nums == 2)
+                                        {
+                                            HandleMathExpr(il, locals, ex);
+                                            ex = null;
+                                            nums -= 1;
+                                        }
+
+                                        break;
+                                    }
+                                case TokenType.MULTDIV:
+                                    {
+                                        ex = expr.Nodes[i];
+                                        break;
+                                    }
+                            }
+                        }
+
+                        break;
+                    }
+                case TokenType.Atom:
+                    {
+                        for (int i = 0; i < expr.Nodes.Count; i++)
+                            HandleMathExpr(il, locals, expr.Nodes[i]);
+                        break;
+                    }
+                case TokenType.NUMBER:
+                    {
+                        il.Emit(OpCodes.Ldc_R4, float.Parse(expr.Token.Text));
+                        break;
+                    }
+                case TokenType.IDENTIFIER:
+                    {
+                        LocalBuilderEx local = locals.Find(it => it.Name == expr.Token.Text);
+                        if (local == null)
+                        {
+                            dynamic info = GetLineAndCol(code, expr.Token.StartPos);
+                            Console.Error.WriteLine("Error: '{0}' doesn't exist! Line: {1}, Col: {2}", expr.Token.Text, info.Line, info.Col);
+                            throw new Exception();
+                        }
+                        else
+                        {
+                            il.Emit(OpCodes.Ldloc, local.Base);
+                            il.Emit(OpCodes.Conv_R4);
+                        }
+                        break;
+                    }
+            }
+        }
         static string GenerateExprStr(ParseNode expr)
         {
             string res = expr.Token.Text;
@@ -1031,6 +1190,16 @@ namespace Mizu
                 res += GenerateExprStr(pn);
             }
             return res;
+        }
+        static bool ExprStrHasVar(ParseNode expr)
+        {
+            string res = GenerateExprStr(expr);
+
+            foreach (char c in res.ToCharArray())
+                if (char.IsLetter(c))
+                    return true;
+
+            return false;
         }
 
         private static ExpandoObject GetLineAndCol(string src, int pos)
