@@ -55,7 +55,7 @@ NOTEQUAL -> @"(\!\=|\<\>)";
 OPENBRCK -> @"\{";
 CLOSEBRCK -> @"\}";
 
-[Skip] COMMENTBLOCK     -> @"/\*[^*]*\*+(?:[^/*][^*]*\*+)*/";
+[Skip] COMMENTBLOCK     -> @"/\*[^*]*\*+(?:[^/*][^*]*\*+)*/(\r\n|\n)";
 
 
 Start -> (Statements)?;

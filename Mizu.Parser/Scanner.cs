@@ -187,7 +187,7 @@ namespace Mizu.Parser
             Patterns.Add(TokenType.CLOSEBRCK, regex);
             Tokens.Add(TokenType.CLOSEBRCK);
 
-            regex = new Regex(@"/\*[^*]*\*+(?:[^/*][^*]*\*+)*/", RegexOptions.Compiled);
+            regex = new Regex(@"/\*[^*]*\*+(?:[^/*][^*]*\*+)*/(\r\n|\n)", RegexOptions.Compiled);
             Patterns.Add(TokenType.COMMENTBLOCK, regex);
             Tokens.Add(TokenType.COMMENTBLOCK);
 
