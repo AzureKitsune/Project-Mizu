@@ -1,0 +1,7 @@
+﻿/* Nested if blocks */
+circles`[1..11]
+[circles<5:{
+[circles>8:{
+.circles.
+}]
+}]

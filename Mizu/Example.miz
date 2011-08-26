@@ -1,7 +1,1 @@
-﻿/* Nested if blocks */
-balls`[1..11]
-[balls<5:{
-[balls>8:{
-.balls.
-}]
-}]
+﻿
