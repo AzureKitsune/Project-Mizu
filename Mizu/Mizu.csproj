@@ -79,7 +79,7 @@
     <None Include="Scripts\99BottlesOfBeer.miz" />
     <None Include="Scripts\HelloWorld.miz" />
     <None Include="Scripts\IfBlockTest.miz" />
-    <None Include="Scripts\NestIfBlocksText.miz" />
+    <None Include="Scripts\NestIfBlocksTest.miz" />
     <None Include="Scripts\OutOfMemoryTest.miz" />
     <None Include="Scripts\Pythagorean.miz" />
   </ItemGroup>

@@ -764,8 +764,7 @@ namespace Mizu
                     }
                 case TokenType.IfStatement:
                     {
-
-
+                        #region If Statement
                         bool hasElse = false;
 
                         var left = stmt.Nodes[1];
@@ -816,6 +815,11 @@ namespace Mizu
                                     ILgen.Emit(OpCodes.Ldc_I4, int.Parse(left.Token.Text));
                                     break;
                                 }
+                            case TokenType.FLOAT:
+                                {
+                                    ILgen.Emit(OpCodes.Ldc_R4, float.Parse(left.Token.Text));
+                                    break;
+                                }
                         }
 
                         //Load the 'right' hand type to the stack.
@@ -841,6 +845,11 @@ namespace Mizu
                             case TokenType.NUMBER:
                                 {
                                     ILgen.Emit(OpCodes.Ldc_I4, int.Parse(right.Token.Text));
+                                    break;
+                                }
+                            case TokenType.FLOAT:
+                                {
+                                    ILgen.Emit(OpCodes.Ldc_R4, float.Parse(right.Token.Text));
                                     break;
                                 }
                         }
@@ -972,13 +981,14 @@ namespace Mizu
                         ILgen.MarkLabel(endofifblock);
 
                         break;
+                        #endregion
                     }
                 default:
                     {
                         //Report an error and stop compile process.
                         err = true;
                         Console.Error.WriteLine("Error: Unsupported statement: {0}", stmt.ToString());
-                        break;
+                        return;
                     }
             }
             err = false;
