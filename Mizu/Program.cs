@@ -109,9 +109,9 @@ namespace Mizu
                             }
 
 
-                            Compile(parsetree, info, output); //Start the compiler process.
+                            bool result = Compile(parsetree, info, output); //Start the compiler process.
 
-                            if (IsRun)
+                            if (IsRun && result)
                                 Process.Start(output.FullName);
                         }
                     }
@@ -134,7 +134,7 @@ namespace Mizu
             }
 #endif
         }
-        static void Compile(Mizu.Parser.ParseTree tree, FileInfo input, FileInfo output)
+        static bool Compile(Mizu.Parser.ParseTree tree, FileInfo input, FileInfo output)
         {
             var start = tree.Nodes[0];
             var statements = start.Nodes[0];
@@ -174,7 +174,7 @@ namespace Mizu
 
             ILgen.BeginExceptionBlock(); //Start a try statement.
 
-           ILgen.BeginScope();
+            ILgen.BeginScope();
 
             // Generate body IL
             bool err = false;
@@ -185,7 +185,7 @@ namespace Mizu
                 HandleStatement(basestmt, ILgen, ref locals, out err);
                 if (err == true)
                 {
-                    return;
+                    return false;
                 }
             }
             var loops = locals.FindAll(it => it.Type == LocalType.LoopVar);
@@ -199,7 +199,7 @@ namespace Mizu
                     {
 
                         if (lastloop.LoopAction()) //Calls actions to be called after all of the statements.
-                            return; //An error has occurred. Abort.
+                            return false; //An error has occurred. Abort.
 
                         //Checks if the current iterator is equal to the higher number.
                         ILgen.Emit(OpCodes.Ldloc, lastloop.Base.LocalIndex);
@@ -234,11 +234,13 @@ namespace Mizu
 
             if (!IsInvalid) ILgen.Emit(OpCodes.Ret); //Finishes the statement by calling return. If a invalid exe is wanted, it omits this statement.
 
-            ab.SetEntryPoint(entrypoint); //Sets entry point
+            ab.SetEntryPoint(entrypoint, PEFileKinds.ConsoleApplication); //Sets entry point
 
             Type finishedtype =  tb.CreateType(); //Compile the type
 
             ab.Save(output.Name); //Save
+
+            return true; //Compilation process completed successfully.
             
         }
         static void HandleStatement(Mizu.Parser.ParseNode stmt, ILGenerator ILgen, ref List<LocalBuilderEx> locals, out bool err)
@@ -319,7 +321,12 @@ namespace Mizu
                                             //Declares a variable and leaves a reference to it.
 
                                             LocalBuilderEx local = new LocalBuilderEx();
-                                            local.Base = ILgen.DeclareLocal(typeof(int));
+
+                                            local.VariableType = typeof(int);
+
+                                            local.Base = ILgen.DeclareLocal(local.VariableType);
+
+
                                             local.Name = token.Token.Text;
                                             local.Type = LocalType.Var;
 
@@ -345,7 +352,10 @@ namespace Mizu
                                         else if (next.Token.Type == TokenType.COMMA)
                                         {
                                             //An array.
-                                            Console.Error.WriteLine("Error: Static arrays are not supported at this time.");
+
+                                            dynamic info = GetLineAndCol(code,stmt.Token.StartPos);
+
+                                            Console.Error.WriteLine("Error: Static arrays are not supported at this time. Line: {0}, Col: {1}",info.Line, info.Col);
                                             err = true;
                                             return;
                                         }
@@ -400,7 +410,9 @@ namespace Mizu
                                                 }
                                                 else
                                                 {
-                                                    Console.Error.WriteLine("Error: Variable '{0}' should be set as {1}. In this case, looping is not allowed.", local.Name, local.LoopLow.ToString());
+                                                    dynamic info = GetLineAndCol(code, stmt.Token.StartPos);
+
+                                                    Console.Error.WriteLine("Error: Variable '{0}' should be set as {1}. In this case, looping is not allowed. Line: {2}, Col: {3}", local.Name, local.LoopLow.ToString(), info.Line, info.Col);
                                                     return true; //Abort because of error.
                                                 }
 
@@ -419,9 +431,12 @@ namespace Mizu
                                 else
                                 {
                                     //Report an error and stop compile process.
+
+                                    dynamic info = GetLineAndCol(code, stmt.Token.StartPos);
+
                                     err = true;
-                                    Console.Error.WriteLine("Error: '{0}' already exist!", token.Token.Text);
-                                    break;
+                                    Console.Error.WriteLine("Error: '{0}' already exist! Line: {1}, Col: {2}", token.Token.Text, info.Line, info.Col);
+                                    return;
                                 }
                             }
                         }
@@ -456,8 +471,10 @@ namespace Mizu
 
                                     if (local == null)
                                     {
+                                        dynamic info = GetLineAndCol(code, stmt.Token.StartPos);
+
                                         err = true;
-                                        Console.Error.WriteLine("Error: '{0}' doesn't exist!", outpt.Token.Text);
+                                        Console.Error.WriteLine("Error: '{0}' doesn't exist! Line: {1}, Col: {2}", outpt.Token.Text, info.Line, info.Col);
                                         return;
                                     }
 
@@ -595,7 +612,9 @@ namespace Mizu
                         LocalBuilderEx lct = locals.Find(it => it.Name == identifier.Token.Text);
                         if (lct != null)
                         {
-                            Console.Error.WriteLine("Error: {0} variable already exist!", identifier.Token.Text);
+                            dynamic info = GetLineAndCol(code, stmt.Token.StartPos);
+
+                            Console.Error.WriteLine("Error: {0} variable already exist! Line: {1}, Col: {2}", identifier.Token.Text, info.Line, info.Col);
 
                             if (lct.Type == LocalType.LoopVar)
                                 Console.Error.WriteLine("- Error: Iterating variables are readonly!");
@@ -755,9 +774,12 @@ namespace Mizu
                         else
                         {
                             //Report an error and stop compile process.
+
+                            dynamic info = GetLineAndCol(code, stmt.Token.StartPos);
+
                             err = true;
-                            Console.Error.WriteLine("Error: '{0}' doesn't exist!", input.Token.Text);
-                            break;
+                            Console.Error.WriteLine("Error: '{0}' doesn't exist! Line: {1}, Col: {2}", input.Token.Text, info.Line, info.Col);
+                            return;
                         }
 
                         break;
@@ -800,9 +822,11 @@ namespace Mizu
 
                                     if (ident == null)
                                     {
+                                        dynamic info = GetLineAndCol(code, stmt.Token.StartPos);
+
                                         err = true;
 
-                                        Console.Error.WriteLine("Variable '{0}' doesn't exist.", left.Token.Text);
+                                        Console.Error.WriteLine("Variable '{0}' doesn't exist. Line: {1}, Col: {2}", left.Token.Text, info.Line, info.Col);
 
                                         return;
                                     }
@@ -832,9 +856,11 @@ namespace Mizu
 
                                     if (ident == null)
                                     {
+                                        dynamic info = GetLineAndCol(code, stmt.Token.StartPos);
+
                                         err = true;
 
-                                        Console.Error.WriteLine("Variable '{0}' doesn't exist.", right.Token.Text);
+                                        Console.Error.WriteLine("Variable '{0}' doesn't exist. Line: {1}, Col: {2}", right.Token.Text, info.Line, info.Col);
 
                                         return;
                                     }
@@ -991,7 +1017,7 @@ namespace Mizu
 
                         dynamic info = GetLineAndCol(code, stmt.Token.StartPos);
 
-                        Console.Error.WriteLine("Error: Unsupported statement: {0}. Line: {1}, Col: {2}", stmt.ToString(), info.Line, info.Col);
+                        Console.Error.WriteLine("Error: Unsupported statement: {0}. Line: {1}, Col: {2}", stmt.Text, info.Line, info.Col);
                         return;
                     }
             }
