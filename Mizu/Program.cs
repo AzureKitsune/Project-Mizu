@@ -177,7 +177,6 @@ namespace Mizu
             MethodBuilder entrypoint = tb.DefineMethod("Main", MethodAttributes.Public | MethodAttributes.Static); //Makes the main method.
 
             var ILgen = entrypoint.GetILGenerator(3072); //gets the IL generator
-
             
             List<LocalBuilderEx> locals = new List<LocalBuilderEx>(); //A list to hold variables.
 
@@ -362,9 +361,9 @@ namespace Mizu
                                         {
                                             //An array.
 
-                                            dynamic info = GetLineAndCol(code,stmt.Token.StartPos);
+                                            dynamic info = GetLineAndCol(code, stmt.Token.StartPos);
 
-                                            Console.Error.WriteLine("Error: Static arrays are not supported at this time. Line: {0}, Col: {1}",info.Line, info.Col);
+                                            Console.Error.WriteLine("Error: Static arrays are not supported at this time. Line: {0}, Col: {1}", info.Line, info.Col);
                                             err = true;
                                             return;
                                         }
@@ -617,6 +616,22 @@ namespace Mizu
 
                         LocalBuilderEx local = new LocalBuilderEx();
 
+                        //Check if a variable of the same name exist.
+                        LocalBuilderEx lct = locals.Find(it => it.Name == identifier.Token.Text);
+                        if (lct != null)
+                        {
+                            //Variable exist, stop compiling.
+                            dynamic info = GetLineAndCol(code, stmt.Token.StartPos);
+
+                            Console.Error.WriteLine("Error: {0} variable already exist! Line: {1}, Col: {2}", identifier.Token.Text, info.Line, info.Col);
+
+                            if (lct.Type == LocalType.LoopVar)
+                                Console.Error.WriteLine("- Error: Iterating variables are readonly!");
+
+                            err = true;
+                            return;
+                        }
+
                         if (!NoEval)
                         {
                             #region Eval using Mizu.Lib.Evaluator
@@ -627,21 +642,6 @@ namespace Mizu
 
                             var exprstr = "";
                             bool localsadded = false;
-
-                            LocalBuilderEx lct = locals.Find(it => it.Name == identifier.Token.Text);
-                            if (lct != null)
-                            {
-                                dynamic info = GetLineAndCol(code, stmt.Token.StartPos);
-
-                                Console.Error.WriteLine("Error: {0} variable already exist! Line: {1}, Col: {2}", identifier.Token.Text, info.Line, info.Col);
-
-                                if (lct.Type == LocalType.LoopVar)
-                                    Console.Error.WriteLine("- Error: Iterating variables are readonly!");
-
-                                err = true;
-                                return;
-                            }
-
 
                             List<LocalBuilder> tmplocals = new List<LocalBuilder>();
 
@@ -840,14 +840,20 @@ namespace Mizu
                         break;
                         #endregion
                     }
-                case TokenType.IfStatement:
+                case TokenType.BlockedStatement:
+                    {
+                        //Due to parser limitations, I have to handle this token in order for both the if blocks and the switch blocks to begin with [.
+                        HandleStatement(stmt.Nodes[1], ILgen, ref locals, out err);
+                        break;
+                    }
+                case TokenType.IfStatement: //If block
                     {
                         #region If Statement
                         bool hasElse = false;
 
-                        var left = stmt.Nodes[1];
-                        var com = stmt.Nodes[2];
-                        var right = stmt.Nodes[3];
+                        var left = stmt.Nodes[0];
+                        var com = stmt.Nodes[1];
+                        var right = stmt.Nodes[2];
 
 
                         if (IsDebug)
@@ -869,123 +875,14 @@ namespace Mizu
                         hasElse = bodies.Count == 2;
 
                         //Load the 'left' hand type onto the stack.
-                        switch (left.Token.Type)
-                        {
-                            case TokenType.IDENTIFIER:
-                                {
-                                    LocalBuilderEx ident = locals.Find(it => it.Name == left.Token.Text);
-
-                                    if (ident == null)
-                                    {
-                                        dynamic info = GetLineAndCol(code, stmt.Token.StartPos);
-
-                                        err = true;
-
-                                        Console.Error.WriteLine("Variable '{0}' doesn't exist. Line: {1}, Col: {2}", left.Token.Text, info.Line, info.Col);
-
-                                        return;
-                                    }
-
-                                    ILgen.Emit(OpCodes.Ldloc, ident.Base);
-
-                                    break;
-                                }
-                            case TokenType.NUMBER:
-                                {
-                                    ILgen.Emit(OpCodes.Ldc_I4, int.Parse(left.Token.Text));
-                                    break;
-                                }
-                            case TokenType.FLOAT:
-                                {
-                                    ILgen.Emit(OpCodes.Ldc_R4, float.Parse(left.Token.Text));
-                                    break;
-                                }
-                        }
+                        HandleDataToken(ILgen, locals, left, out err);
 
                         //Load the 'right' hand type to the stack.
-                        switch (right.Token.Type)
-                        {
-                            case TokenType.IDENTIFIER:
-                                {
-                                    LocalBuilderEx ident = locals.Find(it => it.Name == right.Token.Text);
-
-                                    if (ident == null)
-                                    {
-                                        dynamic info = GetLineAndCol(code, stmt.Token.StartPos);
-
-                                        err = true;
-
-                                        Console.Error.WriteLine("Variable '{0}' doesn't exist. Line: {1}, Col: {2}", right.Token.Text, info.Line, info.Col);
-
-                                        return;
-                                    }
-
-                                    ILgen.Emit(OpCodes.Ldloc, ident.Base);
-
-                                    break;
-                                }
-                            case TokenType.NUMBER:
-                                {
-                                    ILgen.Emit(OpCodes.Ldc_I4, int.Parse(right.Token.Text));
-                                    break;
-                                }
-                            case TokenType.FLOAT:
-                                {
-                                    ILgen.Emit(OpCodes.Ldc_R4, float.Parse(right.Token.Text));
-                                    break;
-                                }
-                        }
+                        HandleDataToken(ILgen, locals, right, out err);
 
                         //Load the 'comparison' function onto the stack.
 
-                        switch (com.Token.Type)
-                        {
-                            case TokenType.DEQUAL:
-                                {
-                                    // == 
-
-                                    ILgen.Emit(OpCodes.Ceq);
-
-                                    break;
-                                }
-                            case TokenType.GT:
-                                {
-                                    // <
-                                    ILgen.Emit(OpCodes.Cgt);
-                                    break;
-                                }
-                            case TokenType.LT:
-                                {
-                                    // >
-                                    ILgen.Emit(OpCodes.Clt);
-                                    break;
-                                }
-                            case TokenType.LTE:
-                                {
-                                    // >=
-                                    ILgen.Emit(OpCodes.Clt);
-                                    ILgen.Emit(OpCodes.Ldc_I4_0);
-                                    ILgen.Emit(OpCodes.Ceq);
-                                    break;
-                                }
-                            case TokenType.GTE:
-                                {
-                                    // <=
-                                    ILgen.Emit(OpCodes.Cgt);
-                                    ILgen.Emit(OpCodes.Ldc_I4_0);
-                                    ILgen.Emit(OpCodes.Ceq);
-                                    break;
-                                }
-                            case TokenType.NOTEQUAL:
-                                {
-                                    // <> and != are accepted.
-
-                                    ILgen.Emit(OpCodes.Ceq);
-                                    ILgen.Emit(OpCodes.Ldc_I4_0);
-                                    ILgen.Emit(OpCodes.Ceq);
-                                    break;
-                                }
-                        }
+                        HandleDataToken(ILgen, locals, com, out err);
 
                         Label endofifblock = ILgen.DefineLabel();
 
@@ -1065,6 +962,119 @@ namespace Mizu
                         break;
                         #endregion
                     }
+                case TokenType.SwitchStatement: //Switch block
+                    {
+                        Label endofswitch = ILgen.DefineLabel();
+                        Label defaultcase = ILgen.DefineLabel();
+
+                        bool hasDefault = false;
+
+                        var ident = stmt.Nodes[1];
+                        var cases = stmt.Nodes.FindAll(it => it.Token.Type == TokenType.SwitchCaseStatement && it.Nodes[0].Token.Text != "*");
+
+                        var addedcases = new List<string>();
+
+
+                        if (IsDebug)
+                        {
+                            int sline = 0, scol = 0;
+
+                            FindLineAndCol(code, ident.Token.StartPos, ref sline, ref scol);
+
+                            int eline = 0, ecol = 0;
+
+                            FindLineAndCol(code, ident.Token.EndPos, ref eline, ref ecol);
+
+                            ILgen.MarkSequencePoint(doc, sline, scol, eline, ecol);
+                        }
+
+                        foreach (ParseNode casen in cases)
+                        {
+                            ILgen.BeginScope();
+
+                            Label caselbl = ILgen.DefineLabel();
+
+                            List<LocalBuilderEx> tmp_locals = new List<LocalBuilderEx>();
+                            locals.ForEach((it) => tmp_locals.Add(it));
+
+                            HandleDataToken(ILgen, tmp_locals, ident, out err); //Load identifier.
+
+                            var casename = casen.Nodes[0];
+
+                            HandleDataToken(ILgen, tmp_locals, casename, out err); //Loads the number.
+
+                            ILgen.Emit(OpCodes.Ceq);
+                            ILgen.Emit(OpCodes.Brtrue, caselbl);
+
+                            var stmts = casen.Nodes.Find(it => it.Token.Type == TokenType.Statements);
+
+                            ILgen.MarkLabel(caselbl);
+                            foreach (ParseNode pn in stmts.Nodes)
+                            {
+                                HandleStatement(pn.Nodes[0], ILgen, ref tmp_locals, out err);
+                            }
+
+                            if (err)
+                                return;
+
+                            ILgen.EndScope();
+                            ILgen.Emit(OpCodes.Br, endofswitch); //Jumps out of switvch at the end of the method.
+                        }
+
+                        var defaultcases = stmt.Nodes.FindAll(it => it.Token.Type == TokenType.SwitchCaseStatement && it.Nodes[0].Token.Text == "*");
+
+                        hasDefault = defaultcases.Count >= 1;
+
+                        if (hasDefault == false)
+                        {
+                            //Report an error and stop compile process.
+                            err = true;
+
+                            dynamic info = GetLineAndCol(code, stmt.Token.StartPos);
+
+                            Console.Error.WriteLine("Error: Switch block doesn't have a default case. Line: {0}, Col: {1}", info.Line, info.Col);
+                            return;
+                        }
+
+                        if (defaultcases.Count >= 2)
+                        {
+                            //Report an error and stop compile process.
+                            err = true;
+
+                            dynamic info = GetLineAndCol(code, stmt.Token.StartPos);
+
+                            Console.Error.WriteLine("Error: Switch block already has a default case. Line: {0}, Col: {1}", info.Line, info.Col);
+                            return;
+                        }
+
+                        ///Handle default case
+                        ILgen.Emit(OpCodes.Br, defaultcase);
+
+
+                        var dcase = defaultcases[0];
+
+                        ILgen.BeginScope();
+
+                        List<LocalBuilderEx> d_locals = new List<LocalBuilderEx>();
+                        locals.ForEach((it) => d_locals.Add(it));
+
+                        var dstmts = dcase.Nodes.Find(it => it.Token.Type == TokenType.Statements);
+
+                        ILgen.MarkLabel(defaultcase);
+                        foreach (ParseNode pn in dstmts.Nodes)
+                        {
+                            HandleStatement(pn.Nodes[0], ILgen, ref d_locals, out err);
+                        }
+
+                        ILgen.EndScope();
+                        ILgen.Emit(OpCodes.Br, endofswitch); //Jumps out of switvch at the end of the method.
+                        
+                        ////
+
+
+                        ILgen.MarkLabel(endofswitch);
+                        break;
+                    }
                 default:
                     {
                         //Report an error and stop compile process.
@@ -1074,6 +1084,87 @@ namespace Mizu
 
                         Console.Error.WriteLine("Error: Unsupported statement: {0}. Line: {1}, Col: {2}", stmt.Text, info.Line, info.Col);
                         return;
+                    }
+            }
+            err = false;
+        }
+        static void HandleDataToken(ILGenerator ILgen, List<LocalBuilderEx> locals, ParseNode expr, out bool err)
+        {
+            switch (expr.Token.Type)
+            {
+                case TokenType.IDENTIFIER:
+                    {
+                        LocalBuilderEx ident = locals.Find(it => it.Name == expr.Token.Text);
+
+                        if (ident == null)
+                        {
+                            dynamic info = GetLineAndCol(code, expr.Parent.Token.StartPos);
+
+                            err = true;
+
+                            Console.Error.WriteLine("Variable '{0}' doesn't exist. Line: {1}, Col: {2}", expr.Token.Text, info.Line, info.Col);
+
+                            return;
+                        }
+
+                        ILgen.Emit(OpCodes.Ldloc, ident.Base);
+
+                        break;
+                    }
+                case TokenType.NUMBER:
+                    {
+                        ILgen.Emit(OpCodes.Ldc_I4, int.Parse(expr.Token.Text));
+                        break;
+                    }
+                case TokenType.FLOAT:
+                    {
+                        ILgen.Emit(OpCodes.Ldc_R4, float.Parse(expr.Token.Text));
+                        break;
+                    }
+                case TokenType.DEQUAL:
+                    {
+                        // == 
+
+                        ILgen.Emit(OpCodes.Ceq);
+
+                        break;
+                    }
+                case TokenType.GT:
+                    {
+                        // <
+                        ILgen.Emit(OpCodes.Clt);
+                        break;
+                    }
+                case TokenType.LT:
+                    {
+                        // >
+                        ILgen.Emit(OpCodes.Cgt);
+                        break;
+                    }
+                case TokenType.LTE:
+                    {
+                        // >=
+                        ILgen.Emit(OpCodes.Clt);
+                        ILgen.Emit(OpCodes.Ldc_I4_0);
+                        ILgen.Emit(OpCodes.Ceq);
+                        break;
+                    }
+                case TokenType.GTE:
+                    {
+                        // <=
+                        ILgen.Emit(OpCodes.Cgt);
+                        ILgen.Emit(OpCodes.Ldc_I4_0);
+                        ILgen.Emit(OpCodes.Ceq);
+                        break;
+                    }
+                case TokenType.NOTEQUAL:
+                    {
+                        // <> and != are accepted.
+
+                        ILgen.Emit(OpCodes.Ceq);
+                        ILgen.Emit(OpCodes.Ldc_I4_0);
+                        ILgen.Emit(OpCodes.Ceq);
+                        break;
                     }
             }
             err = false;
