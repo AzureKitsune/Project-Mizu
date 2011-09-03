@@ -1,7 +1,5 @@
 ﻿x`[1..7]
 [!x:{
-5:
-."In case x = 5, this block will execute.".
 *:
 ."This is the default (case else in VB) area. It is marked by the star.".
 }]

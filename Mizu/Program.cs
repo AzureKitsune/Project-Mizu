@@ -23,6 +23,7 @@ namespace Mizu
         static string mode = null;
         static void Main(string[] args)
         {
+            
 #if DEBUG
             mode = "Debug";
 #else
@@ -233,9 +234,17 @@ namespace Mizu
 
             ILgen.BeginCatchBlock(typeof(Exception)); //Ends the try statement and starts the catch section.
 
-            /*ILgen.Emit(OpCodes.Call, typeof(Exception).GetMethod("ToString", new Type[] { })); //Gets the exception as a string.
+            /*LocalBuilder ex = ILgen.DeclareLocal(typeof(Exception));
 
-            ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] { typeof(string) })); */
+            ILgen.Emit(OpCodes.Stloc,ex);
+
+            ILgen.Emit(OpCodes.Ldloc, ex); */
+
+            //ILgen.Emit(OpCodes.Box, typeof(Exception));
+
+            ILgen.Emit(OpCodes.Callvirt, typeof(Exception).GetMethod("ToString")); 
+
+            ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] {typeof(string) }));
 
             ILgen.EndExceptionBlock();  //Ends the catch section.
 
@@ -351,6 +360,7 @@ namespace Mizu
                                             catch (Exception) { }
 
                                             ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("ReadLine")); //Sets the number from STDIN.
+
                                             ILgen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToInt32", new Type[] { typeof(string) })); //Parses it into an integer.
                                             ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base); //Assigns the number to the variable.
 
@@ -387,7 +397,11 @@ namespace Mizu
 
 
                                             var looplab = ILgen.DefineLabel();
+
+                                            ILgen.BeginScope();
                                             local.Base = ILgen.DeclareLocal(local.VariableType);
+
+                                            
 
                                             local.LoopLabel = looplab;
 
@@ -425,6 +439,7 @@ namespace Mizu
                                                 }
 
                                                 ILgen.Emit(OpCodes.Stloc, (LocalBuilder)local.Base);
+                                                ILgen.EndScope();
                                                 return false;
                                             };
 
@@ -964,6 +979,7 @@ namespace Mizu
                     }
                 case TokenType.SwitchStatement: //Switch block
                     {
+                        #region Switch Statement
                         Label endofswitch = ILgen.DefineLabel();
                         SwitchCaseInfo defaultcase = new SwitchCaseInfo()
                         {
@@ -1153,6 +1169,7 @@ namespace Mizu
 
                         ILgen.MarkLabel(endofswitch);
                         break;
+                        #endregion
                     }
                 default:
                     {
