@@ -11,7 +11,7 @@
 
 <% @ParseTree Generate="True" %>
 
-<% @TinyPG Namespace="Mizu.Parser" Language="VB" OutputPath="C:\\Users\\alex\\Documents\\visual studio 2010\\Projects\\Mizu2\\Mizu2.Parser\\" %>
+<% @TinyPG Namespace="Mizu2.Parser" Language="C#" OutputPath="C:\\Users\\alex\\Documents\\visual studio 2010\\Projects\\Mizu2\\Mizu2.Parser\\" %>
 
 GT -> @"\<";
 GTE -> @"\<\=";
@@ -30,11 +30,12 @@ OPENBR -> @"\[";
 CLOSEBR -> @"\]";
 COLON -> @"\:";
 EOF -> @"^\s*$";
-TAB -> @"\t";
-FOURSPACE -> @"\s\s\s\s";
+[Skip] TAB -> @"\t";
+[Skip] FOURSPACE -> @"\s\s\s\s";
 [Color(0, 0, 255)] IDENTIFIER -> @"[a-zA-Z_][a-zA-Z0-9_]*";
 [Color(255, 0, 0)] NUMBER -> @"(\-)?[0-9]+";
 [Color(255, 0, 0)] FLOAT -> @"(\-)?[0-9]+\.[0-9]+"; 
+TYPE -> @"[a-zA-Z_]*(\.[a-zA-Z0-9_]*)+";
 NULLKW -> @"(null|nil)";
 CLASSKW -> @"class";
 PUBLICKW -> @"public";
@@ -52,18 +53,20 @@ FALSE -> @"false";
 VAR -> @"var";
 NEW -> @"new";
 AS -> @"as";
+ELSE -> @"else";
 
 Start -> Statement+;
-Indention -> (TAB|FOURSPACE);
 Boolean -> (TRUE|FALSE);
-Assignment -> IDENTIFIER (WHITESPACE)? (EQUAL (WHITESPACE)? (IDENTIFIER|NUMBER|FLOAT|NULLKW|STRING)|AS WHITESPACE NEW WHITESPACE IDENTIFIER BROPEN (((IDENTIFIER|NUMBER|FLOAT) COMMA (WHITESPACE)?)+)? BRCLOSE);
+Assignment -> IDENTIFIER (WHITESPACE)? (EQUAL (WHITESPACE)? (FuncCall|IDENTIFIER|NUMBER|FLOAT|NULLKW|STRING)|AS WHITESPACE NEW WHITESPACE TYPE BROPEN (((IDENTIFIER|NUMBER|FLOAT) COMMA (WHITESPACE)?)+)? BRCLOSE);
 VariableAssignment -> VAR WHITESPACE Assignment;
 VariableExpr -> IDENTIFIER (WHITESPACE)? (GT|GTE|LT|LTE|NOTEQUAL|EQUAL) (WHITESPACE)? (IDENTIFIER|NUMBER|FLOAT|NULLKW|STRING);
 //Class -> (PUBLICCLASSKW|PRIVATECLASSKW|CLASSKW) WHITESPACE IDENTIFIER COLON NEWLINE (IndentedLine)+;
 //Classes -> (Class (NEWLINE|EOF))+;
-Field -> (PUBLICKW|PRIVATEKW)? WHITESPACE Assignment (NEWLINE|EOF)?;
-Statement -> (VariableAssignment|IfStatement) (NEWLINE|EOF)?;
-IndentedStatement -> Indention+ (Statement)?;
+//Field -> (PUBLICKW|PRIVATEKW)? WHITESPACE Assignment (NEWLINE|EOF)?;
+Statement -> (VariableAssignment|IfStatement|FuncCall) (NEWLINE|EOF?);
 //IndentedLine -> Indention+ (Method|Field);
-Method -> (PUBLICDEFKW|PRIVATEDEFKW|DEFKW) WHITESPACE IDENTIFIER BROPEN (((IDENTIFIER|NUMBER|FLOAT) COMMA (WHITESPACE))+)? BRCLOSE COLON NEWLINE IndentedStatement+;
-IfStatement -> IFKW WHITESPACE (VariableExpr|(BROPEN VariableExpr BRCLOSE)) COLON NEWLINE IndentedStatement+;
+//Method -> (PUBLICDEFKW|PRIVATEDEFKW|DEFKW) WHITESPACE IDENTIFIER BROPEN (((IDENTIFIER|NUMBER|FLOAT) COMMA (WHITESPACE))+)? BRCLOSE COLON NEWLINE Statement+;
+IfStatement -> IFKW WHITESPACE (VariableExpr|(BROPEN VariableExpr BRCLOSE)) COLON (NEWLINE)? IfStmtIFBody (ELSE COLON NEWLINE IfStmtELSEBody)?;
+IfStmtIFBody -> Statement+;
+IfStmtELSEBody -> Statement+;
+FuncCall -> TYPE BROPEN ((IDENTIFIER|NUMBER|FLOAT|STRING) (COMMA (IDENTIFIER|NUMBER|FLOAT|STRING))?)? BRCLOSE;
