@@ -965,14 +965,44 @@ namespace Mizu
                 case TokenType.SwitchStatement: //Switch block
                     {
                         Label endofswitch = ILgen.DefineLabel();
-                        Label defaultcase = ILgen.DefineLabel();
+                        SwitchCaseInfo defaultcase = new SwitchCaseInfo()
+                        {
+                            Label = ILgen.DefineLabel()
+                        };
+
+                        List<SwitchCaseInfo> caselist = new List<SwitchCaseInfo>();
 
                         bool hasDefault = false;
 
                         var ident = stmt.Nodes[1];
-                        var cases = stmt.Nodes.FindAll(it => it.Token.Type == TokenType.SwitchCaseStatement && it.Nodes[0].Token.Text != "*");
 
-                        var addedcases = new List<string>();
+                        var compar = new Comparison<ParseNode>((node1, node2) =>
+                        {
+                            try
+                            {
+                                if (node1 == node2)
+                                {
+                                    return 0;
+                                }
+                                else if (node1.Nodes[0].Token.Type == TokenType.NUMBER)
+                                {
+                                    return -1;
+                                }
+                                else
+                                {
+                                    return 1;
+                                }
+                            }
+                            catch (Exception)
+                            {
+                                return 0;
+                            }
+                        });
+
+                        var cases = stmt.Nodes.FindAll(it => it.Token.Type == TokenType.SwitchCaseStatement);
+                        cases.Sort(compar);
+
+                        var addedcases = new List<int>();
 
 
                         if (IsDebug)
@@ -990,40 +1020,70 @@ namespace Mizu
 
                         foreach (ParseNode casen in cases)
                         {
-                            ILgen.BeginScope();
-
-                            Label caselbl = ILgen.DefineLabel();
-
-                            List<LocalBuilderEx> tmp_locals = new List<LocalBuilderEx>();
-                            locals.ForEach((it) => tmp_locals.Add(it));
-
-                            HandleDataToken(ILgen, tmp_locals, ident, out err); //Load identifier.
+                            SwitchCaseInfo caseinfo = new SwitchCaseInfo();
 
                             var casename = casen.Nodes[0];
-
-                            HandleDataToken(ILgen, tmp_locals, casename, out err); //Loads the number.
-
-                            ILgen.Emit(OpCodes.Ceq);
-                            ILgen.Emit(OpCodes.Brtrue, caselbl);
-
-                            var stmts = casen.Nodes.Find(it => it.Token.Type == TokenType.Statements);
-
-                            ILgen.MarkLabel(caselbl);
-                            foreach (ParseNode pn in stmts.Nodes)
+                            if (casename.Token.Text == "*")
                             {
-                                HandleStatement(pn.Nodes[0], ILgen, ref tmp_locals, out err);
+                                defaultcase.Node = casen;
+                                defaultcase.CaseName = casename;
+                                defaultcase.CaseType = SwitchCase_TypeEnum.Default;
+
+                                if (hasDefault == true)
+                                {
+                                    //Report an error and stop compile process.
+                                    err = true;
+
+                                    dynamic info = GetLineAndCol(code, stmt.Token.StartPos);
+
+                                    Console.Error.WriteLine("Error: Switch block already has a default case. Line: {0}, Col: {1}", info.Line, info.Col);
+                                    return;
+                                }
+
+                                hasDefault = true;
                             }
+                            else
+                            {
+                                caseinfo.Number = int.Parse(casen.Nodes[0].Token.Text);
+                                caseinfo.CaseType = SwitchCase_TypeEnum.Number;
+                                caseinfo.CaseName = casename;
+                                caseinfo.Node = casen;
+                                caseinfo.Label = ILgen.DefineLabel();
 
-                            if (err)
-                                return;
+                                if (addedcases.Contains(caseinfo.Number))
+                                {
+                                    err = true;
 
-                            ILgen.EndScope();
-                            ILgen.Emit(OpCodes.Br, endofswitch); //Jumps out of switvch at the end of the method.
+                                    dynamic info = GetLineAndCol(code, stmt.Token.StartPos);
+
+                                    Console.Error.WriteLine("Error: Switch block already has a case for '{0}'. Line: {1}, Col: {2}",caseinfo.Number, info.Line, info.Col);
+                                    return;
+                                }
+
+                                addedcases.Add(caseinfo.Number);
+
+                                caselist.Add(caseinfo);
+                            }
                         }
 
-                        var defaultcases = stmt.Nodes.FindAll(it => it.Token.Type == TokenType.SwitchCaseStatement && it.Nodes[0].Token.Text == "*");
+                        foreach (SwitchCaseInfo cse in caselist)
+                        {
+                            //Build the instruction table.
+                            if (cse.CaseType == SwitchCase_TypeEnum.Number)
+                            {
+                                HandleDataToken(ILgen, locals, ident, out err); //Load identifier.
 
-                        hasDefault = defaultcases.Count >= 1;
+                                HandleDataToken(ILgen, locals, cse.CaseName, out err); //Loads the number.
+
+                                ILgen.Emit(OpCodes.Ceq);
+                                ILgen.Emit(OpCodes.Brtrue, cse.Label);
+                            }
+                            else
+                            {
+                                ILgen.Emit(OpCodes.Br, defaultcase.Label);
+                            }
+                        }
+
 
                         if (hasDefault == false)
                         {
@@ -1036,22 +1096,11 @@ namespace Mizu
                             return;
                         }
 
-                        if (defaultcases.Count >= 2)
-                        {
-                            //Report an error and stop compile process.
-                            err = true;
-
-                            dynamic info = GetLineAndCol(code, stmt.Token.StartPos);
-
-                            Console.Error.WriteLine("Error: Switch block already has a default case. Line: {0}, Col: {1}", info.Line, info.Col);
-                            return;
-                        }
 
                         ///Handle default case
-                        ILgen.Emit(OpCodes.Br, defaultcase);
 
 
-                        var dcase = defaultcases[0];
+                        var dcase = defaultcase.Node;
 
                         ILgen.BeginScope();
 
@@ -1060,16 +1109,46 @@ namespace Mizu
 
                         var dstmts = dcase.Nodes.Find(it => it.Token.Type == TokenType.Statements);
 
-                        ILgen.MarkLabel(defaultcase);
+                        ILgen.MarkLabel(defaultcase.Label);
                         foreach (ParseNode pn in dstmts.Nodes)
                         {
                             HandleStatement(pn.Nodes[0], ILgen, ref d_locals, out err);
                         }
 
                         ILgen.EndScope();
-                        ILgen.Emit(OpCodes.Br, endofswitch); //Jumps out of switvch at the end of the method.
-                        
+                        ILgen.Emit(OpCodes.Br, endofswitch); //Jumps out of switvch at the end of the method. 
+
                         ////
+
+                        foreach (SwitchCaseInfo inner in caselist)
+                        {
+                            ILgen.BeginScope();
+
+                            List<LocalBuilderEx> tmp_locals = new List<LocalBuilderEx>();
+                            locals.ForEach((it) => tmp_locals.Add(it));
+
+                            var stmts = inner.Node.Nodes.Find(it => it.Token.Type == TokenType.Statements);
+
+                            ILgen.MarkLabel(inner.Label);
+
+                            bool ierr = false;
+
+                            foreach (ParseNode pn in stmts.Nodes)
+                            {
+                                HandleStatement(pn.Nodes[0], ILgen, ref tmp_locals, out ierr);
+                            }
+
+                            if (ierr)
+                            {
+                                err = true;
+                                return;
+                            }
+
+                            ILgen.EndScope();
+                            ILgen.Emit(OpCodes.Br, endofswitch); //Jumps out of switvch at the end of the method.
+                        } 
+
+
 
 
                         ILgen.MarkLabel(endofswitch);

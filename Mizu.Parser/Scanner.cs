@@ -71,7 +71,7 @@ namespace Mizu.Parser
             Patterns.Add(TokenType.SET, regex);
             Tokens.Add(TokenType.SET);
 
-            regex = new Regex(@"\s+", RegexOptions.Compiled);
+            regex = new Regex(@"\s", RegexOptions.Compiled);
             Patterns.Add(TokenType.WHITESPACE, regex);
             Tokens.Add(TokenType.WHITESPACE);
 
