@@ -28,6 +28,7 @@ EQUAL -> @"\=";
 WHITESPACE       -> @"\s+";
 OPENBR -> @"\[";
 CLOSEBR -> @"\]";
+PERIOD -> @"\.";
 COLON -> @"\:";
 EOF -> @"^\s*$";
 [Skip] TAB -> @"\t";

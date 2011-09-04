@@ -96,6 +96,10 @@ namespace Mizu2.Parser
             Patterns.Add(TokenType.CLOSEBR, regex);
             Tokens.Add(TokenType.CLOSEBR);
 
+            regex = new Regex(@"\.", RegexOptions.Compiled);
+            Patterns.Add(TokenType.PERIOD, regex);
+            Tokens.Add(TokenType.PERIOD);
+
             regex = new Regex(@"\:", RegexOptions.Compiled);
             Patterns.Add(TokenType.COLON, regex);
             Tokens.Add(TokenType.COLON);
@@ -351,32 +355,33 @@ namespace Mizu2.Parser
             WHITESPACE= 24,
             OPENBR  = 25,
             CLOSEBR = 26,
-            COLON   = 27,
-            EOF     = 28,
-            TAB     = 29,
-            FOURSPACE= 30,
-            IDENTIFIER= 31,
-            NUMBER  = 32,
-            FLOAT   = 33,
-            TYPE    = 34,
-            NULLKW  = 35,
-            CLASSKW = 36,
-            PUBLICKW= 37,
-            PRIVATEKW= 38,
-            PUBLICCLASSKW= 39,
-            PRIVATECLASSKW= 40,
-            DEFKW   = 41,
-            PUBLICDEFKW= 42,
-            PRIVATEDEFKW= 43,
-            BROPEN  = 44,
-            BRCLOSE = 45,
-            IFKW    = 46,
-            TRUE    = 47,
-            FALSE   = 48,
-            VAR     = 49,
-            NEW     = 50,
-            AS      = 51,
-            ELSE    = 52
+            PERIOD  = 27,
+            COLON   = 28,
+            EOF     = 29,
+            TAB     = 30,
+            FOURSPACE= 31,
+            IDENTIFIER= 32,
+            NUMBER  = 33,
+            FLOAT   = 34,
+            TYPE    = 35,
+            NULLKW  = 36,
+            CLASSKW = 37,
+            PUBLICKW= 38,
+            PRIVATEKW= 39,
+            PUBLICCLASSKW= 40,
+            PRIVATECLASSKW= 41,
+            DEFKW   = 42,
+            PUBLICDEFKW= 43,
+            PRIVATEDEFKW= 44,
+            BROPEN  = 45,
+            BRCLOSE = 46,
+            IFKW    = 47,
+            TRUE    = 48,
+            FALSE   = 49,
+            VAR     = 50,
+            NEW     = 51,
+            AS      = 52,
+            ELSE    = 53
     }
 
     public class Token
