@@ -234,17 +234,26 @@ namespace Mizu
 
             ILgen.BeginCatchBlock(typeof(Exception)); //Ends the try statement and starts the catch section.
 
-            /*LocalBuilder ex = ILgen.DeclareLocal(typeof(Exception));
+            if (!IsDebug)
+            {
+                //If its not a debug build, add code to print out the error safely.
 
-            ILgen.Emit(OpCodes.Stloc,ex);
+                /*LocalBuilder ex = ILgen.DeclareLocal(typeof(Exception));
 
-            ILgen.Emit(OpCodes.Ldloc, ex); */
+                ILgen.Emit(OpCodes.Stloc,ex);
 
-            //ILgen.Emit(OpCodes.Box, typeof(Exception));
+                ILgen.Emit(OpCodes.Ldloc, ex); */
 
-            ILgen.Emit(OpCodes.Callvirt, typeof(Exception).GetMethod("ToString")); 
+                //ILgen.Emit(OpCodes.Box, typeof(Exception));
 
-            ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] {typeof(string) }));
+                ILgen.Emit(OpCodes.Callvirt, typeof(Exception).GetMethod("ToString"));
+
+                ILgen.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] { typeof(string) }));
+            }
+            else
+            {
+                ILgen.Emit(OpCodes.Rethrow);
+            }
 
             ILgen.EndExceptionBlock();  //Ends the catch section.
 
