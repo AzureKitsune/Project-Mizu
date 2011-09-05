@@ -175,6 +175,7 @@ namespace Mizu
             }
 
             TypeBuilder tb = mb.DefineType("App"); //Defines main type.
+
             MethodBuilder entrypoint = tb.DefineMethod("Main", MethodAttributes.Public | MethodAttributes.Static); //Makes the main method.
 
             var ILgen = entrypoint.GetILGenerator(3072); //gets the IL generator
@@ -262,7 +263,7 @@ namespace Mizu
 
             ab.SetEntryPoint(entrypoint, PEFileKinds.ConsoleApplication); //Sets entry point
 
-            Type finishedtype =  tb.CreateType(); //Compile the type
+            Type finishedtype = tb.CreateType(); //Compile the type
 
             ab.Save(output.Name); //Save
 
