@@ -23,7 +23,7 @@ Module Module1
 
                 If tree.Errors.Count > 0 Then
                     For Each Err As ParseError In tree.Errors
-                        Console.Error.WriteLine("[{0},{1}] Error: {2}", Err.Line, Err.Position, Err.Message)
+                        Console.Error.WriteLine("[{0},{1}] Error: {2}", Err.Line + 1, Err.Position, Err.Message)
                     Next
                     Return
                 Else
@@ -71,7 +71,7 @@ Module Module1
         End If
 
         Dim tb = mb.DefineType("App") 'Defines main type.
-        Dim entrypoint = tb.DefineMethod("Main", MethodAttributes.Public And MethodAttributes.Static) 'Makes the main method.
+        Dim entrypoint = tb.DefineMethod("Main", MethodAttributes.Public + MethodAttributes.Static) 'Makes the main method.
 
         Dim ILgen = entrypoint.GetILGenerator(3072) 'gets the IL generator
 
@@ -103,7 +103,7 @@ Module Module1
         ILgen.EndExceptionBlock()  'Ends the catch section.
 
 
-        'if (!IsInvalid) ILgen.Emit(OpCodes.Ret); //Finishes the statement by calling return. If a invalid exe is wanted, it omits this statement.
+        ILgen.Emit(OpCodes.Ret) 'Finishes the statement by calling return.
 
         ab.SetEntryPoint(entrypoint, PEFileKinds.ConsoleApplication) 'Sets entry point
 
@@ -112,8 +112,111 @@ Module Module1
         ab.Save(output.Name) 'Save
         Return True
     End Function
+    Public Sub HandleExprAsAssignment(ByVal expr As ParseNode, ByVal ILgen As ILGenerator, ByVal locals As List(Of LocalBuilderEx), ByRef err As Boolean)
+
+    End Sub
+    Public Sub HandleExprAsBoolean(ByVal expr As ParseNode, ByVal ILgen As ILGenerator, ByVal locals As List(Of LocalBuilderEx), ByRef err As Boolean)
+        Dim left As ParseNode = expr.Nodes(0)
+        Dim middle As ParseNode = expr.Nodes(1) 'The operator
+        If middle.Token.Type = TokenType.WHITESPACE Then middle = expr.Nodes(2)
+
+        Dim right As ParseNode = expr.Nodes(3)
+        If right.Token.Type = TokenType.WHITESPACE Then right = expr.Nodes(4)
+
+        LoadToken(ILgen, left, locals, err)
+        If err Then Return
+
+        LoadToken(ILgen, right, locals, err)
+        If err Then Return
+
+        LoadOperator(middle, ILgen)
+    End Sub
+    Public Function HandleFunctionCall(ByVal stmt As ParseNode, ByVal ILgen As ILGenerator, ByRef locals As List(Of LocalBuilderEx), ByRef err As Boolean) As Boolean
+        Dim returnsvalues As Boolean = False
+
+        Dim params As ParseNode() = Nothing
+        Dim usedident As Boolean = False
+        Dim ident As LocalBuilderEx = Nothing
+        Dim func = TypeResolver.ResolveFunctionFromParseNode(stmt, locals, params, usedident, ident)
+
+        If usedident = False Then
+
+            returnsvalues = func.ReturnType <> GetType(Void)
+
+            For Each param In params 'If any parameters, load them.
+                LoadToken(ILgen, param, locals, err)
+
+                If err Then Return False
+            Next
+
+            ILgen.Emit(OpCodes.Call, func)
+
+            Return returnsvalues
+        Else
+            returnsvalues = func.ReturnType <> GetType(Void)
+
+            ILgen.Emit(OpCodes.Ldloca, ident.BaseLocal)
+            'ILgen.Emit(OpCodes.Box, ident.VariableType)
+            ILgen.Emit(OpCodes.Call, func)
+
+            Return returnsvalues
+        End If
+    End Function
     Public Sub HandleStatement(ByVal stmt As ParseNode, ByVal ILgen As ILGenerator, ByRef locals As List(Of LocalBuilderEx), ByRef err As Boolean)
         Select Case stmt.Token.Type
+            Case TokenType.FuncCall
+                Dim returns = HandleFunctionCall(stmt, ILgen, locals, err)
+                If returns = True Then
+                    ILgen.Emit(OpCodes.Pop) 'Discard the value because in this context, we don't care about it.
+                End If
+                Return
+            Case TokenType.IfStatement
+                Dim expr As ParseNode = stmt.Nodes(2)
+                Dim ifbody As ParseNode = stmt.Nodes.Find(Function(it) it.Token.Type = TokenType.IfStmtIFBody)
+                Dim ifbodylabel As Label = ILgen.DefineLabel()
+                Dim endofstmt As Label = ILgen.DefineLabel()
+
+                'Handle the expression
+                HandleExprAsBoolean(expr, ILgen, locals, err)
+                If err Then Return
+
+                ILgen.Emit(OpCodes.Brtrue, ifbodylabel)
+                ILgen.Emit(OpCodes.Br, endofstmt) 'Otherwise, skip the method
+
+                If (IsDebug) Then
+
+                    Dim sline = 0, scol = 0
+
+                    FindLineAndCol(Code, expr.Token.StartPos, sline, scol)
+
+                    Dim eline = 0, ecol = 0
+
+                    FindLineAndCol(Code, expr.Token.EndPos, eline, ecol)
+
+                    ILgen.MarkSequencePoint(Doc, sline, scol, eline, ecol)
+                End If
+
+                ILgen.BeginScope()
+
+                ILgen.MarkLabel(ifbodylabel)
+
+                ''Handle inner statements here.
+
+                Dim tmp_locals As New List(Of LocalBuilderEx) 'Create a temp list for local variables inside of the if statement.
+                locals.ForEach(Sub(it) tmp_locals.Add(it)) 'Add global variables into the temp list.
+
+                For Each ifstmt In ifbody.Nodes
+                    HandleStatement(ifstmt.Nodes(0), ILgen, tmp_locals, err)
+
+                    If err = True Then Return
+                Next
+                ILgen.Emit(OpCodes.Br, endofstmt)
+
+
+                ILgen.MarkLabel(endofstmt)
+                ILgen.EndScope()
+
+                Return
             Case TokenType.VariableAssignment
 
                 If (IsDebug) Then
@@ -143,59 +246,137 @@ Module Module1
 
                         local.VariableName = name
 
-                        Select Case value.Token.Type
-                            Case TokenType.IDENTIFIER
-                                Dim idnt = locals.Find(Function(it) it.VariableName = value.Token.Text)
+                        LoadToken(ILgen, value, locals, err, local)
+                        If err = True Then Return
 
-                                If idnt Is Nothing Then
-                                    err = True
-                                    Console.Error.WriteLine("Error: Variable '{0}' doesn't exist in this context.", value.Token.Text)
-                                    Return
-                                End If
-
-                                local.VariableType = idnt.VariableType
-
-                                ILgen.Emit(OpCodes.Ldloc, idnt.BaseLocal)
-                                Exit Select
-                            Case TokenType.NUMBER
-                                local.VariableType = GetType(Integer)
-
-                                ILgen.Emit(OpCodes.Ldc_I4, Integer.Parse(value.Token.Text))
-                                Exit Select
-                            Case TokenType.FLOAT
-                                local.VariableType = GetType(Single)
-
-                                ILgen.Emit(OpCodes.Ldc_R4, Single.Parse(value.Token.Text))
-                                Exit Select
-                            Case TokenType.NULLKW
-                                local.VariableType = Nothing
-
-                                ILgen.Emit(OpCodes.Ldnull)
-                                Exit Select
-                            Case TokenType.STRING
-                                local.VariableType = GetType(String)
-
-                                Dim str As String = value.Token.Text
-                                str = str.Substring(1)
-                                str = str.Remove(str.Length - 1)
-
-                                ILgen.Emit(OpCodes.Ldstr, value.Token.Text)
-                                Exit Select
-                        End Select
-
+                        If local.VariableType = Nothing Then
+                            local.VariableType = GetType(Object) 'Just set it as object
+                        End If
                         local.BaseLocal = ILgen.DeclareLocal(local.VariableType)
 
                         If (IsDebug) Then
-                            local.BaseLocal.SetLocalSymInfo(stmt.Token.Text) 'Set variable name for debug info.
+                            local.BaseLocal.SetLocalSymInfo(name) 'Set variable name for debug info.
                         End If
 
                         ILgen.Emit(OpCodes.Stloc, local.BaseLocal)
 
                         locals.Add(local)
                         Return
+                        Return
+                    Case TokenType.AS
+
+
+                        Dim typename As String = loc.Nodes(6).Token.Text
+
+                        Dim constrs As ParseNode() = loc.Nodes.GetRange(8, loc.Nodes.Count - 8).ToArray()
+                        constrs = Array.FindAll(constrs, Function(it) it.Token.Type <> TokenType.BROPEN And it.Token.Type <> TokenType.BRCLOSE)
+
+                        Dim objType As Type = TypeResolver.ResolveType(typename)
+
+                        local.VariableType = objType
+                        local.BaseLocal = ILgen.DeclareLocal(local.VariableType)
+
+                        If (IsDebug) Then
+                            local.BaseLocal.SetLocalSymInfo(name) 'Set variable name for debug info.
+                        End If
+
+                        If constrs.Length = 0 Then
+                            Dim constrInfo As ConstructorInfo = Nothing
+                            constrInfo = objType.GetConstructor(New Type() {})
+
+
+                            ILgen.Emit(OpCodes.Newobj, constrInfo)
+                            ILgen.Emit(OpCodes.Stloc, local.BaseLocal)
+                        ElseIf constrs.Length > 0 Then
+
+                            '' Unfinished
+                            Dim constrInfo As ConstructorInfo = Nothing
+                            For Each constrItem As ParseNode In constrs
+                                LoadToken(ILgen, constrItem, locals, err)
+                                If err = True Then Return
+                            Next
+
+
+                            ILgen.Emit(OpCodes.Newobj, constrInfo)
+                            ILgen.Emit(OpCodes.Stloc, local.BaseLocal)
+                        Else
+                            Console.Error.WriteLine("Error: Invalid amount of parameters.")
+                            err = True
+                            Return
+                        End If
+                        Return
+
                 End Select
+        End Select
+    End Sub
+    Private Sub LoadToken(ByVal ILgen As ILGenerator, ByVal value As ParseNode, ByRef locals As List(Of LocalBuilderEx), ByRef Err As Boolean, Optional ByRef local As LocalBuilderEx = Nothing)
+        Select Case value.Token.Type
+            Case TokenType.IDENTIFIER
+                Dim idnt = locals.Find(Function(it) it.VariableName = value.Token.Text)
+
+                If idnt Is Nothing Then
+                    Err = True
+                    Console.Error.WriteLine("Error: Variable '{0}' doesn't exist in this context.", value.Token.Text)
+                    Return
+                End If
+
+                If Not local Is Nothing Then
+                    local.VariableType = idnt.VariableType
+                End If
+
+                ILgen.Emit(OpCodes.Ldloc, idnt.BaseLocal)
+                Exit Select
+            Case TokenType.NUMBER
+                If Not local Is Nothing Then local.VariableType = GetType(Integer)
+
+                ILgen.Emit(OpCodes.Ldc_I4, Integer.Parse(value.Token.Text))
+                Exit Select
+            Case TokenType.FLOAT
+                If Not local Is Nothing Then local.VariableType = GetType(Single)
+
+                ILgen.Emit(OpCodes.Ldc_R4, Single.Parse(value.Token.Text))
+                Exit Select
+            Case TokenType.NULLKW
+                If Not local Is Nothing Then local.VariableType = Nothing
+
+                ILgen.Emit(OpCodes.Ldnull)
+                Exit Select
+            Case TokenType.STRING
+                If Not local Is Nothing Then local.VariableType = GetType(String)
+
+                Dim str As String = value.Token.Text
+                'trims first leading and trailing quote marks.
+                str = str.Substring(1)
+                str = str.Remove(str.Length - 1)
+
+                ILgen.Emit(OpCodes.Ldstr, str)
+                Exit Select
+            Case TokenType.FuncCall
+                HandleFunctionCall(value, ILgen, locals, Err)
+                Exit Select
+            Case Else
+                'If all else fails, declare it as a regular object.
+
+                If Not local Is Nothing Then local.VariableType = GetType(Object)
+                ILgen.Emit(OpCodes.Initobj, GetType(Object))
+                Exit Select
+        End Select
+    End Sub
+    Private Sub LoadOperator(ByVal op As ParseNode, ByVal ILgen As ILGenerator)
+        Select Case op.Token.Type
+            Case TokenType.EQUAL
+                ILgen.Emit(OpCodes.Ceq)
                 Return
-            Case TokenType.AS
+            Case TokenType.GT
+                ILgen.Emit(OpCodes.Cgt)
+                Return
+            Case TokenType.LT
+                ILgen.Emit(OpCodes.Clt)
+                Return
+            Case TokenType.NOTEQUAL
+                ILgen.Emit(OpCodes.Ceq)
+                ILgen.Emit(OpCodes.Ldc_I4_0)
+                ILgen.Emit(OpCodes.Ceq)
                 Return
         End Select
     End Sub

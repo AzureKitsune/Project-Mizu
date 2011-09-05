@@ -1,3 +1,9 @@
 ﻿var x = 5
-if x = 6:
+System.Console.WriteLine()
+System.Console.WriteLine("X")
+System.Console.ReadLine()
+var obj as new System.Object()
+if x = 5:
 	var y = 9
+	var ystr = y.ToString()
+	System.Console.WriteLine(ystr)
