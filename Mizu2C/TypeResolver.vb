@@ -4,7 +4,7 @@ Imports System.Reflection
 Public Class TypeResolver
     Public Shared Function ResolveType(ByVal name As String) As Type
         Dim obj = Type.GetType(name, False, False) 'Worst case scenario, I'll need to implement my own search.
-        '^^ Searchs MSCorlib for the type.
+        '^^ Searches MSCorlib for the type.
         If obj = Nothing Then
             'It did not find the method so try searching through namespaces.
             For Each ns In Namespaces
@@ -78,7 +78,8 @@ Public Class TypeResolver
 
         Dim funcname As String = text.Substring(lastper + 1)
 
-        ident = locals.Find(Function(it) it.VariableName = classname) 'Variables can be instances of classes. Check to see if its classing a variable instead of a static object instance.
+        ident = locals.Find(
+            Function(it) it.VariableName = classname) 'Variables can be instances of classes. Check to see if its classing a variable instead of a static object instance.
 
         out_params = stmt.Nodes.GetRange(1, stmt.Nodes.Count - 1).FindAll(Function(it) it.Token.Type <> TokenType.WHITESPACE And it.Token.Type <> TokenType.BROPEN And it.Token.Type <> TokenType.BRCLOSE And it.Token.Type <> TokenType.COMMA).ToArray()
 
@@ -96,7 +97,7 @@ Public Class TypeResolver
         End If
     End Function
     Public Shared Function TypeResolverFromType_GetType(assembly As Assembly, str As String, bool As Boolean) As Type
-
+        Throw New NotImplementedException
     End Function
 
 End Class

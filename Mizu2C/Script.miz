@@ -1,11 +1,10 @@
 ﻿uses System
-var x = Int32.Parse(Console.ReadLine())
-Console.WriteLine()
-Console.WriteLine("X")
-var input = Console.ReadLine()
-Console.WriteLine(input)
-var obj as new Object()
-if x = 5:
-	var y = 9
-	var ystr = y.ToString()
-	Console.WriteLine(ystr)
+uses System.Collections
+var list as new ArrayList()
+list.Add("First string")
+list.Add("Second string")
+for(var item in list)
+{
+Console.WriteLine(item)
+}
+Console.ReadLine()

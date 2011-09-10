@@ -14,22 +14,34 @@ Module Module1
 
                 Code = IO.File.ReadAllText(args(0))
 
-                If code.Length = 0 Then
+                If Code.Length = 0 Then
                     Console.Error.WriteLine("Source code file cannot be empty.")
                     Return
                 End If
 
-                Dim tree = parser.Parse(code)
+                Dim tree = parser.Parse(Code)
+
+                tree.Eval()
 
                 If tree.Errors.Count > 0 Then
                     For Each Err As ParseError In tree.Errors
                         Console.Error.WriteLine("[{0},{1}] Error: {2}", Err.Line + 1, Err.Position, Err.Message)
                     Next
-                    Return
-                Else
-                    Dim input As New FileInfo(args(0)), output As New FileInfo(args(1))
-                    Compile(input, output, tree)
+                    If ForceCompile = False Then Return
                 End If
+
+                If args.Count > 2 Then
+                    For i As Integer = 2 To args.Count - 1
+                        Select Case args(i).ToLower
+                            Case "/debug" : IsDebug = True
+                            Case "/force" : ForceCompile = True
+                        End Select
+                    Next
+                End If
+
+                Dim input As New FileInfo(args(0)), output As New FileInfo(args(1))
+                Compile(input, output, tree)
+
             Else
                 Console.Error.WriteLine("File doesn't exist!")
                 Return
@@ -40,6 +52,7 @@ Module Module1
         End If
     End Sub
     Public IsDebug As Boolean = False
+    Public ForceCompile As Boolean = True
     Public Code As String = Nothing
     Public Doc As System.Diagnostics.SymbolStore.ISymbolDocumentWriter
     Public Namespaces As New List(Of String)
@@ -140,10 +153,10 @@ Module Module1
         Dim ident As LocalBuilderEx = Nothing
         Dim func = TypeResolver.ResolveFunctionFromParseNode(stmt, locals, params, usedident, ident)
 
-        If usedident = False Then
+        returnval = func.ReturnType
+        returnsvalues = func.ReturnType <> GetType(Void) 'If it doesn't equal Void, it returns a useable value.
 
-            returnval = func.ReturnType
-            returnsvalues = func.ReturnType <> GetType(Void)
+        If usedident = False Then
 
             For Each param In params 'If any parameters, load them.
                 LoadToken(ILgen, param, locals, err)
@@ -155,8 +168,6 @@ Module Module1
 
             Return returnsvalues
         Else
-            returnval = func.ReturnType
-            returnsvalues = func.ReturnType <> GetType(Void)
 
             ILgen.Emit(OpCodes.Ldloca, ident.BaseLocal)
             'ILgen.Emit(OpCodes.Box, ident.VariableType)
@@ -168,22 +179,78 @@ Module Module1
     Public Function HandleTypeResolveFromGetType(assembly As Assembly, str As String, bool As Boolean) As Type
         Return TypeResolver.TypeResolverFromType_GetType(assembly, str, bool)
     End Function
+    Public Sub HandleForStatement(ByVal stmt As ParseNode, ByVal ILgen As ILGenerator, ByRef locals As List(Of LocalBuilderEx), ByRef err As Boolean)
+        Dim forbit As ParseNode = Nothing
+        Dim forbody_lab As Label = ILgen.DefineLabel()
+        Dim endofstmt As Label = ILgen.DefineLabel()
+        Dim forbody As ParseNode = stmt.Nodes.Find(Function(it) it.Token.Type = TokenType.ForStmtBODY)
 
+        If stmt.Nodes(1).Token.Type = TokenType.WHITESPACE Then forbit = stmt.Nodes(3) Else forbit = stmt.Nodes(2)
+
+        Select Case forbit.Token.Type
+            Case TokenType.ForEachStmt
+
+                Exit Select
+            Case TokenType.ForIterStmt
+                Exit Select
+        End Select
+
+        Dim tmp_locs As New List(Of LocalBuilderEx)
+        locals.ForEach(Sub(it) tmp_locs.Add(it))
+
+        ILgen.MarkLabel(forbody_lab)
+
+        For Each stmt In forbody.Nodes
+            HandleStatement(stmt, ILgen, tmp_locs, err)
+        Next
+
+        ILgen.MarkLabel(endofstmt)
+    End Sub
     Public Sub HandleStatement(ByVal stmt As ParseNode, ByVal ILgen As ILGenerator, ByRef locals As List(Of LocalBuilderEx), ByRef err As Boolean)
         Select Case stmt.Token.Type
             Case TokenType.ForStatement
+                HandleForStatement(stmt, ILgen, locals, err)
                 Return
             Case TokenType.UsesStatement
                 'Dim t As Type = Type.GetType(stmt.Nodes(2).Token.Text, Nothing, New System.Func(Of Assembly, String, Boolean, Type)(AddressOf HandleTypeResolveFromGetType), False, False)
-                Namespaces.Add(stmt.Nodes(2).Token.Text)
+                Dim ns As String = stmt.Nodes(2).Token.Text
+
+                If Not Namespaces.Contains(ns) Then Namespaces.Add(ns)
+                If (IsDebug) Then
+
+                    Dim sline = 0, scol = 0
+
+                    FindLineAndCol(Code, stmt.Token.StartPos, sline, scol)
+
+                    Dim eline = 0, ecol = 0
+
+                    FindLineAndCol(Code, stmt.Token.EndPos, eline, ecol)
+
+                    ILgen.MarkSequencePoint(Doc, sline, scol, eline, ecol)
+                End If
+
                 Return
             Case TokenType.FuncCall
+                If (IsDebug) Then
+
+                    Dim sline = 0, scol = 0
+
+                    FindLineAndCol(Code, stmt.Token.StartPos, sline, scol)
+
+                    Dim eline = 0, ecol = 0
+
+                    FindLineAndCol(Code, stmt.Token.EndPos, eline, ecol)
+
+                    ILgen.MarkSequencePoint(Doc, sline, scol, eline, ecol)
+                End If
+
                 Dim returns = HandleFunctionCall(stmt, ILgen, locals, err)
                 If returns = True Then
                     ILgen.Emit(OpCodes.Pop) 'Discard the value because in this context, we don't care about it.
                 End If
                 Return
             Case TokenType.IfStatement
+                ''TODO: Handle Else statements.
                 Dim expr As ParseNode = stmt.Nodes(2)
                 Dim ifbody As ParseNode = stmt.Nodes.Find(Function(it) it.Token.Type = TokenType.IfStmtIFBody)
                 Dim ifbodylabel As Label = ILgen.DefineLabel()
@@ -268,7 +335,7 @@ Module Module1
                         local.BaseLocal = ILgen.DeclareLocal(local.VariableType)
 
                         If (IsDebug) Then
-                            local.BaseLocal.SetLocalSymInfo(name) 'Set variable name for debug info.
+                            local.BaseLocal.SetLocalSymInfo(name, loc.Nodes(0).Token.StartPos, loc.Nodes(0).Token.EndPos) 'Set variable name for debug info.
                         End If
 
                         ILgen.Emit(OpCodes.Stloc, local.BaseLocal)
@@ -290,8 +357,10 @@ Module Module1
                         local.BaseLocal = ILgen.DeclareLocal(local.VariableType)
 
                         If (IsDebug) Then
-                            local.BaseLocal.SetLocalSymInfo(name) 'Set variable name for debug info.
+                            local.BaseLocal.SetLocalSymInfo(name, loc.Nodes(0).Token.StartPos, loc.Nodes(0).Token.EndPos) 'Set variable name for debug info.
                         End If
+
+                        local.VariableName = name
 
                         If constrs.Length = 0 Then
                             Dim constrInfo As ConstructorInfo = Nothing
@@ -317,6 +386,7 @@ Module Module1
                             err = True
                             Return
                         End If
+                        locals.Add(local)
                         Return
 
                 End Select
@@ -369,6 +439,10 @@ Module Module1
                 HandleFunctionCall(value, ILgen, locals, Err, rt)
                 If Not local Is Nothing Then local.VariableType = rt
                 Exit Select
+            Case TokenType.MathExpr
+                If Not local Is Nothing Then local.VariableType = GetType(Integer)
+                HandleMathExpr(value, ILgen, locals, Err)
+                Exit Select
             Case Else
                 'If all else fails, declare it as a regular object.
 
@@ -392,6 +466,18 @@ Module Module1
                 ILgen.Emit(OpCodes.Ceq)
                 ILgen.Emit(OpCodes.Ldc_I4_0)
                 ILgen.Emit(OpCodes.Ceq)
+                Return
+            Case TokenType.PLUS
+                ILgen.Emit(OpCodes.Add)
+                Return
+            Case TokenType.MINUS
+                ILgen.Emit(OpCodes.Sub)
+                Return
+            Case TokenType.MULTI
+                ILgen.Emit(OpCodes.Mul)
+                Return
+            Case TokenType.DIV
+                ILgen.Emit(OpCodes.Div)
                 Return
         End Select
     End Sub
@@ -420,4 +506,27 @@ Module Module1
             End If
         Next
     End Sub
+
+    Private Sub HandleMathExpr(expr As ParseNode, ILgen As ILGenerator, locals As List(Of LocalBuilderEx), Err As Boolean)
+        Dim expr1 As ParseNode = Nothing, expr2 As ParseNode = Nothing, op As ParseNode = Nothing
+        Dim expr1_ind As Integer = 0
+
+        If expr.Nodes(1).Token.Type = TokenType.WHITESPACE Then
+            expr1 = expr.Nodes(2)
+            expr1_ind = 2
+        Else
+            expr1 = expr.Nodes(1)
+            expr1_ind = 1
+        End If
+
+        expr2 = expr.Nodes(expr1_ind + 2)
+
+        op = expr.Nodes(expr.Nodes.Count - 2).Nodes(0)
+
+        LoadToken(ILgen, expr1, locals, Err)
+        LoadToken(ILgen, expr2, locals, Err)
+        LoadOperator(op, ILgen)
+
+    End Sub
+
 End Module

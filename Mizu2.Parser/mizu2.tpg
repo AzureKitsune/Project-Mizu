@@ -55,6 +55,12 @@ PUBLICDEFKW -> @"(P|p)ublic def";
 PRIVATEDEFKW -> @"(P|p)rivate def";
 [Color(0, 0, 255)] BROPEN -> @"\("; 
 [Color(0, 0, 255)] BRCLOSE -> @"\)";
+
+[Skip] EMPTYLINE -> @"(\r\n|\n)\s(?=\S)";
+
+BRCKOPEN -> @"\{";
+BRCKCLOSE -> @"\}";
+
 IFKW -> @"if";
 TRUE -> @"true";
 FALSE -> @"false";
@@ -74,12 +80,12 @@ VariableExpr -> IDENTIFIER (WHITESPACE)? (GT|GTE|LT|LTE|NOTEQUAL|EQUAL) (WHITESP
 //Class -> (PUBLICCLASSKW|PRIVATECLASSKW|CLASSKW) WHITESPACE IDENTIFIER COLON NEWLINE (IndentedLine)+;
 //Classes -> (Class (NEWLINE|EOF))+;
 //Field -> (PUBLICKW|PRIVATEKW)? WHITESPACE Assignment (NEWLINE|EOF)?;
-Statement -> (VariableAssignment|IfStatement|FuncCall|ForStatement|UsesStatement) (NEWLINE|EOF?);
+Statement -> (VariableAssignment|IfStatement|FuncCall|ForStatement|UsesStatement) (NEWLINE|EMPTYLINE+|EOF?);
 //IndentedLine -> Indention+ (Method|Field);
 //Method -> (PUBLICDEFKW|PRIVATEDEFKW|DEFKW) WHITESPACE IDENTIFIER BROPEN (((IDENTIFIER|NUMBER|FLOAT) COMMA (WHITESPACE))+)? BRCLOSE COLON NEWLINE Statement+;
 Type -> TYPE ((PERIOD IDENTIFIER)+)?;
 
-IfStatement -> IFKW WHITESPACE (VariableExpr|(BROPEN VariableExpr BRCLOSE)) COLON (NEWLINE)? IfStmtIFBody (ELSE COLON NEWLINE IfStmtELSEBody)?;
+IfStatement -> IFKW WHITESPACE (VariableExpr|(BROPEN VariableExpr BRCLOSE)) (NEWLINE BRCKOPEN|BRCKOPEN (NEWLINE)?) IfStmtIFBody BRCKCLOSE (ELSE (NEWLINE BRCKOPEN|BRCKOPEN (NEWLINE)) IfStmtELSEBody BRCKCLOSE)?;
 IfStmtIFBody -> (Indention Statement+)+;
 IfStmtELSEBody -> (Indention Statement+)+;
 
@@ -88,7 +94,7 @@ Indention -> (TAB|FOURSPACE);
 FuncCall -> Type BROPEN ((IDENTIFIER|FuncCall|NUMBER|FLOAT|STRING) (COMMA (IDENTIFIER|FuncCall|NUMBER|FLOAT|STRING))?)? BRCLOSE;
 MathExpr -> BROPEN (WHITESPACE)? ((NUMBER|IDENTIFIER|MathExpr) WHITESPACE) ((NUMBER|IDENTIFIER|MathExpr) WHITESPACE) Operator BRCLOSE;
 
-ForStatement -> FOR (WHITESPACE)? BROPEN (ForEachStmt|ForIterStmt) BRCLOSE COLON (NEWLINE)? ForStmtBODY;
+ForStatement -> FOR (WHITESPACE)? BROPEN (ForEachStmt|ForIterStmt) BRCLOSE (NEWLINE BRCKOPEN|BRCKOPEN (NEWLINE)?) ForStmtBODY BRCKCLOSE;
 ForEachStmt -> (Type|VAR) WHITESPACE IDENTIFIER WHITESPACE IN WHITESPACE IDENTIFIER;
 ForIterStmt -> NUMBER;
 ForStmtBODY -> (Indention Statement+)+;

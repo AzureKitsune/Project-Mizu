@@ -33,6 +33,7 @@ namespace Mizu2.Parser
             Skipped = new List<Token>();
 
             SkipList = new List<TokenType>();
+            SkipList.Add(TokenType.EMPTYLINE);
 
             regex = new Regex(@"\<", RegexOptions.Compiled);
             Patterns.Add(TokenType.GT, regex);
@@ -193,6 +194,18 @@ namespace Mizu2.Parser
             regex = new Regex(@"\)", RegexOptions.Compiled);
             Patterns.Add(TokenType.BRCLOSE, regex);
             Tokens.Add(TokenType.BRCLOSE);
+
+            regex = new Regex(@"(\r\n|\n)\s(?=\S)", RegexOptions.Compiled);
+            Patterns.Add(TokenType.EMPTYLINE, regex);
+            Tokens.Add(TokenType.EMPTYLINE);
+
+            regex = new Regex(@"\{", RegexOptions.Compiled);
+            Patterns.Add(TokenType.BRCKOPEN, regex);
+            Tokens.Add(TokenType.BRCKOPEN);
+
+            regex = new Regex(@"\}", RegexOptions.Compiled);
+            Patterns.Add(TokenType.BRCKCLOSE, regex);
+            Tokens.Add(TokenType.BRCKCLOSE);
 
             regex = new Regex(@"if", RegexOptions.Compiled);
             Patterns.Add(TokenType.IFKW, regex);
@@ -419,16 +432,19 @@ namespace Mizu2.Parser
             PRIVATEDEFKW= 58,
             BROPEN  = 59,
             BRCLOSE = 60,
-            IFKW    = 61,
-            TRUE    = 62,
-            FALSE   = 63,
-            VAR     = 64,
-            NEW     = 65,
-            AS      = 66,
-            ELSE    = 67,
-            FOR     = 68,
-            IN      = 69,
-            USES    = 70
+            EMPTYLINE= 61,
+            BRCKOPEN= 62,
+            BRCKCLOSE= 63,
+            IFKW    = 64,
+            TRUE    = 65,
+            FALSE   = 66,
+            VAR     = 67,
+            NEW     = 68,
+            AS      = 69,
+            ELSE    = 70,
+            FOR     = 71,
+            IN      = 72,
+            USES    = 73
     }
 
     public class Token
