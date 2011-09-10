@@ -42,6 +42,7 @@ Module Module1
     Public IsDebug As Boolean = False
     Public Code As String = Nothing
     Public Doc As System.Diagnostics.SymbolStore.ISymbolDocumentWriter
+    Public Namespaces As New List(Of String)
     Public Function Compile(ByVal input As FileInfo, output As FileInfo, ByVal tree As ParseTree) As Boolean
         'The majority of this was ported from the first Mizu (Mizu Concept 1).
 
@@ -131,7 +132,7 @@ Module Module1
 
         LoadOperator(middle, ILgen)
     End Sub
-    Public Function HandleFunctionCall(ByVal stmt As ParseNode, ByVal ILgen As ILGenerator, ByRef locals As List(Of LocalBuilderEx), ByRef err As Boolean) As Boolean
+    Public Function HandleFunctionCall(ByVal stmt As ParseNode, ByVal ILgen As ILGenerator, ByRef locals As List(Of LocalBuilderEx), ByRef err As Boolean, Optional ByRef returnval As Object = Nothing) As Boolean
         Dim returnsvalues As Boolean = False
 
         Dim params As ParseNode() = Nothing
@@ -141,6 +142,7 @@ Module Module1
 
         If usedident = False Then
 
+            returnval = func.ReturnType
             returnsvalues = func.ReturnType <> GetType(Void)
 
             For Each param In params 'If any parameters, load them.
@@ -153,6 +155,7 @@ Module Module1
 
             Return returnsvalues
         Else
+            returnval = func.ReturnType
             returnsvalues = func.ReturnType <> GetType(Void)
 
             ILgen.Emit(OpCodes.Ldloca, ident.BaseLocal)
@@ -162,8 +165,18 @@ Module Module1
             Return returnsvalues
         End If
     End Function
+    Public Function HandleTypeResolveFromGetType(assembly As Assembly, str As String, bool As Boolean) As Type
+        Return TypeResolver.TypeResolverFromType_GetType(assembly, str, bool)
+    End Function
+
     Public Sub HandleStatement(ByVal stmt As ParseNode, ByVal ILgen As ILGenerator, ByRef locals As List(Of LocalBuilderEx), ByRef err As Boolean)
         Select Case stmt.Token.Type
+            Case TokenType.ForStatement
+                Return
+            Case TokenType.UsesStatement
+                'Dim t As Type = Type.GetType(stmt.Nodes(2).Token.Text, Nothing, New System.Func(Of Assembly, String, Boolean, Type)(AddressOf HandleTypeResolveFromGetType), False, False)
+                Namespaces.Add(stmt.Nodes(2).Token.Text)
+                Return
             Case TokenType.FuncCall
                 Dim returns = HandleFunctionCall(stmt, ILgen, locals, err)
                 If returns = True Then
@@ -266,9 +279,9 @@ Module Module1
                     Case TokenType.AS
 
 
-                        Dim typename As String = loc.Nodes(6).Token.Text
+                        Dim typename As String = loc.Nodes(6).Nodes(0).Token.Text
 
-                        Dim constrs As ParseNode() = loc.Nodes.GetRange(8, loc.Nodes.Count - 8).ToArray()
+                        Dim constrs As ParseNode() = loc.Nodes(6).Nodes.GetRange(1, loc.Nodes(6).Nodes.Count - 1).ToArray()
                         constrs = Array.FindAll(constrs, Function(it) it.Token.Type <> TokenType.BROPEN And it.Token.Type <> TokenType.BRCLOSE)
 
                         Dim objType As Type = TypeResolver.ResolveType(typename)
@@ -352,7 +365,9 @@ Module Module1
                 ILgen.Emit(OpCodes.Ldstr, str)
                 Exit Select
             Case TokenType.FuncCall
-                HandleFunctionCall(value, ILgen, locals, Err)
+                Dim rt As Type = Nothing
+                HandleFunctionCall(value, ILgen, locals, Err, rt)
+                If Not local Is Nothing Then local.VariableType = rt
                 Exit Select
             Case Else
                 'If all else fails, declare it as a regular object.

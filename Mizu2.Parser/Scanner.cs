@@ -33,8 +33,6 @@ namespace Mizu2.Parser
             Skipped = new List<Token>();
 
             SkipList = new List<TokenType>();
-            SkipList.Add(TokenType.TAB);
-            SkipList.Add(TokenType.FOURSPACE);
 
             regex = new Regex(@"\<", RegexOptions.Compiled);
             Patterns.Add(TokenType.GT, regex);
@@ -104,6 +102,22 @@ namespace Mizu2.Parser
             Patterns.Add(TokenType.COLON, regex);
             Tokens.Add(TokenType.COLON);
 
+            regex = new Regex(@"\+", RegexOptions.Compiled);
+            Patterns.Add(TokenType.PLUS, regex);
+            Tokens.Add(TokenType.PLUS);
+
+            regex = new Regex(@"\-", RegexOptions.Compiled);
+            Patterns.Add(TokenType.MINUS, regex);
+            Tokens.Add(TokenType.MINUS);
+
+            regex = new Regex(@"\*", RegexOptions.Compiled);
+            Patterns.Add(TokenType.MULTI, regex);
+            Tokens.Add(TokenType.MULTI);
+
+            regex = new Regex(@"\/", RegexOptions.Compiled);
+            Patterns.Add(TokenType.DIV, regex);
+            Tokens.Add(TokenType.DIV);
+
             regex = new Regex(@"^\s*$", RegexOptions.Compiled);
             Patterns.Add(TokenType.EOF, regex);
             Tokens.Add(TokenType.EOF);
@@ -116,7 +130,7 @@ namespace Mizu2.Parser
             Patterns.Add(TokenType.FOURSPACE, regex);
             Tokens.Add(TokenType.FOURSPACE);
 
-            regex = new Regex(@"[a-zA-Z_][a-zA-Z0-9_]*", RegexOptions.Compiled);
+            regex = new Regex(@"(?!(uses|var|if|for))[a-zA-Z][a-zA-Z0-9_]*", RegexOptions.Compiled);
             Patterns.Add(TokenType.IDENTIFIER, regex);
             Tokens.Add(TokenType.IDENTIFIER);
 
@@ -128,7 +142,11 @@ namespace Mizu2.Parser
             Patterns.Add(TokenType.FLOAT, regex);
             Tokens.Add(TokenType.FLOAT);
 
-            regex = new Regex(@"[a-zA-Z_]*(\.[a-zA-Z0-9_]*)+", RegexOptions.Compiled);
+            regex = new Regex(@"(?!(\s|\n))[a-zA-Z_]*(\.[a-zA-Z0-9_]*)?", RegexOptions.Compiled);
+            Patterns.Add(TokenType.NAMESPACE, regex);
+            Tokens.Add(TokenType.NAMESPACE);
+
+            regex = new Regex(@"\b(?!(uses|var|if|for))[a-zA-Z0-9_]*((\.[a-zA-Z0-9_]*)?)*\b", RegexOptions.Compiled);
             Patterns.Add(TokenType.TYPE, regex);
             Tokens.Add(TokenType.TYPE);
 
@@ -203,6 +221,18 @@ namespace Mizu2.Parser
             regex = new Regex(@"else", RegexOptions.Compiled);
             Patterns.Add(TokenType.ELSE, regex);
             Tokens.Add(TokenType.ELSE);
+
+            regex = new Regex(@"for", RegexOptions.Compiled);
+            Patterns.Add(TokenType.FOR, regex);
+            Tokens.Add(TokenType.FOR);
+
+            regex = new Regex(@"in", RegexOptions.Compiled);
+            Patterns.Add(TokenType.IN, regex);
+            Tokens.Add(TokenType.IN);
+
+            regex = new Regex(@"uses", RegexOptions.Compiled);
+            Patterns.Add(TokenType.USES, regex);
+            Tokens.Add(TokenType.USES);
 
 
         }
@@ -334,54 +364,71 @@ namespace Mizu2.Parser
             VariableAssignment= 5,
             VariableExpr= 6,
             Statement= 7,
-            IfStatement= 8,
-            IfStmtIFBody= 9,
-            IfStmtELSEBody= 10,
-            FuncCall= 11,
+            Type    = 8,
+            IfStatement= 9,
+            IfStmtIFBody= 10,
+            IfStmtELSEBody= 11,
+            Operator= 12,
+            Indention= 13,
+            FuncCall= 14,
+            MathExpr= 15,
+            ForStatement= 16,
+            ForEachStmt= 17,
+            ForIterStmt= 18,
+            ForStmtBODY= 19,
+            UsesStatement= 20,
 
             //Terminal tokens:
-            GT      = 12,
-            GTE     = 13,
-            DEQUAL  = 14,
-            LT      = 15,
-            LTE     = 16,
-            NOTEQUAL= 17,
-            OPENBRCK= 18,
-            CLOSEBRCK= 19,
-            STRING  = 20,
-            COMMA   = 21,
-            NEWLINE = 22,
-            EQUAL   = 23,
-            WHITESPACE= 24,
-            OPENBR  = 25,
-            CLOSEBR = 26,
-            PERIOD  = 27,
-            COLON   = 28,
-            EOF     = 29,
-            TAB     = 30,
-            FOURSPACE= 31,
-            IDENTIFIER= 32,
-            NUMBER  = 33,
-            FLOAT   = 34,
-            TYPE    = 35,
-            NULLKW  = 36,
-            CLASSKW = 37,
-            PUBLICKW= 38,
-            PRIVATEKW= 39,
-            PUBLICCLASSKW= 40,
-            PRIVATECLASSKW= 41,
-            DEFKW   = 42,
-            PUBLICDEFKW= 43,
-            PRIVATEDEFKW= 44,
-            BROPEN  = 45,
-            BRCLOSE = 46,
-            IFKW    = 47,
-            TRUE    = 48,
-            FALSE   = 49,
-            VAR     = 50,
-            NEW     = 51,
-            AS      = 52,
-            ELSE    = 53
+            GT      = 21,
+            GTE     = 22,
+            DEQUAL  = 23,
+            LT      = 24,
+            LTE     = 25,
+            NOTEQUAL= 26,
+            OPENBRCK= 27,
+            CLOSEBRCK= 28,
+            STRING  = 29,
+            COMMA   = 30,
+            NEWLINE = 31,
+            EQUAL   = 32,
+            WHITESPACE= 33,
+            OPENBR  = 34,
+            CLOSEBR = 35,
+            PERIOD  = 36,
+            COLON   = 37,
+            PLUS    = 38,
+            MINUS   = 39,
+            MULTI   = 40,
+            DIV     = 41,
+            EOF     = 42,
+            TAB     = 43,
+            FOURSPACE= 44,
+            IDENTIFIER= 45,
+            NUMBER  = 46,
+            FLOAT   = 47,
+            NAMESPACE= 48,
+            TYPE    = 49,
+            NULLKW  = 50,
+            CLASSKW = 51,
+            PUBLICKW= 52,
+            PRIVATEKW= 53,
+            PUBLICCLASSKW= 54,
+            PRIVATECLASSKW= 55,
+            DEFKW   = 56,
+            PUBLICDEFKW= 57,
+            PRIVATEDEFKW= 58,
+            BROPEN  = 59,
+            BRCLOSE = 60,
+            IFKW    = 61,
+            TRUE    = 62,
+            FALSE   = 63,
+            VAR     = 64,
+            NEW     = 65,
+            AS      = 66,
+            ELSE    = 67,
+            FOR     = 68,
+            IN      = 69,
+            USES    = 70
     }
 
     public class Token

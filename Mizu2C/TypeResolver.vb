@@ -3,7 +3,19 @@ Imports System.Reflection
 
 Public Class TypeResolver
     Public Shared Function ResolveType(ByVal name As String) As Type
-        Return Type.GetType(name, False, False) 'Worst case scenario, I'll need to implement my own search.
+        Dim obj = Type.GetType(name, False, False) 'Worst case scenario, I'll need to implement my own search.
+        '^^ Searchs MSCorlib for the type.
+        If obj = Nothing Then
+            'It did not find the method so try searching through namespaces.
+            For Each ns In Namespaces
+                obj = Type.GetType(ns + "." + name)
+                If obj = Nothing Then
+                    Continue For
+                Else : Exit For
+                End If
+            Next
+        End If
+        Return obj
     End Function
     ''
 
@@ -17,6 +29,24 @@ Public Class TypeResolver
                 Return GetType(Integer)
             Case TokenType.FLOAT
                 Return GetType(Single)
+            Case TokenType.FuncCall
+                Dim method = ResolveFunctionFromParseNode(node, locals)
+                Return method.ReturnType
+            Case TokenType.Type
+                Dim str As String = node.Nodes(0).Token.Text
+                Dim obj = Type.GetType(str) 'Type to resolve it from mscorlib
+
+                If obj = Nothing Then
+                    'It did not find the method so try searching through namespaces.
+                    For Each ns In Namespaces
+                        obj = Type.GetType(ns + "." + str)
+                        If obj = Nothing Then
+                            Continue For
+                        Else : Exit For
+                        End If
+                    Next
+                End If
+                Return obj
             Case TokenType.IDENTIFIER
                 If Not locals Is Nothing Then
                     Dim idnt As LocalBuilderEx = locals.Find(Function(it) it.VariableName = node.Token.Text)
@@ -40,7 +70,7 @@ Public Class TypeResolver
         Return list.ToArray
     End Function
     Public Shared Function ResolveFunctionFromParseNode(ByVal stmt As ParseNode, ByVal locals As List(Of LocalBuilderEx), Optional ByRef out_params As ParseNode() = Nothing, Optional ByRef out_used_ident As Boolean = False, Optional ByRef ident As LocalBuilderEx = Nothing) As MethodInfo
-        Dim text As String = stmt.Nodes(0).Token.Text
+        Dim text As String = stmt.Nodes(0).Nodes(0).Token.Text
 
         Dim lastper As Integer = text.LastIndexOf(".")
 
@@ -55,7 +85,9 @@ Public Class TypeResolver
         If ident Is Nothing Then
             'Calling a static object instance.
             Dim obj As Type = TypeResolver.ResolveType(classname)
-            Dim func = obj.GetMethod(funcname, TypeResolver.ResolveTypesFromParseNodeArray(out_params, locals))
+
+            Dim func = Nothing
+            func = obj.GetMethod(funcname, TypeResolver.ResolveTypesFromParseNodeArray(out_params, locals))
             Return func
         Else
             out_used_ident = True
@@ -63,4 +95,8 @@ Public Class TypeResolver
             Return func
         End If
     End Function
+    Public Shared Function TypeResolverFromType_GetType(assembly As Assembly, str As String, bool As Boolean) As Type
+
+    End Function
+
 End Class

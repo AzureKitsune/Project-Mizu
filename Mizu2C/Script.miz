@@ -1,9 +1,11 @@
-﻿var x = 5
-System.Console.WriteLine()
-System.Console.WriteLine("X")
-System.Console.ReadLine()
-var obj as new System.Object()
+﻿uses System
+var x = Int32.Parse(Console.ReadLine())
+Console.WriteLine()
+Console.WriteLine("X")
+var input = Console.ReadLine()
+Console.WriteLine(input)
+var obj as new Object()
 if x = 5:
 	var y = 9
 	var ystr = y.ToString()
-	System.Console.WriteLine(ystr)
+	Console.WriteLine(ystr)

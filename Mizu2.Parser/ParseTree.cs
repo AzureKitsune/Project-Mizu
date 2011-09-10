@@ -185,6 +185,9 @@ namespace Mizu2.Parser
                 case TokenType.Statement:
                     Value = EvalStatement(tree, paramlist);
                     break;
+                case TokenType.Type:
+                    Value = EvalType(tree, paramlist);
+                    break;
                 case TokenType.IfStatement:
                     Value = EvalIfStatement(tree, paramlist);
                     break;
@@ -194,8 +197,32 @@ namespace Mizu2.Parser
                 case TokenType.IfStmtELSEBody:
                     Value = EvalIfStmtELSEBody(tree, paramlist);
                     break;
+                case TokenType.Operator:
+                    Value = EvalOperator(tree, paramlist);
+                    break;
+                case TokenType.Indention:
+                    Value = EvalIndention(tree, paramlist);
+                    break;
                 case TokenType.FuncCall:
                     Value = EvalFuncCall(tree, paramlist);
+                    break;
+                case TokenType.MathExpr:
+                    Value = EvalMathExpr(tree, paramlist);
+                    break;
+                case TokenType.ForStatement:
+                    Value = EvalForStatement(tree, paramlist);
+                    break;
+                case TokenType.ForEachStmt:
+                    Value = EvalForEachStmt(tree, paramlist);
+                    break;
+                case TokenType.ForIterStmt:
+                    Value = EvalForIterStmt(tree, paramlist);
+                    break;
+                case TokenType.ForStmtBODY:
+                    Value = EvalForStmtBODY(tree, paramlist);
+                    break;
+                case TokenType.UsesStatement:
+                    Value = EvalUsesStatement(tree, paramlist);
                     break;
 
                 default:
@@ -235,6 +262,11 @@ namespace Mizu2.Parser
             throw new NotImplementedException();
         }
 
+        protected virtual object EvalType(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
         protected virtual object EvalIfStatement(ParseTree tree, params object[] paramlist)
         {
             throw new NotImplementedException();
@@ -250,7 +282,47 @@ namespace Mizu2.Parser
             throw new NotImplementedException();
         }
 
+        protected virtual object EvalOperator(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalIndention(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
         protected virtual object EvalFuncCall(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalMathExpr(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalForStatement(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalForEachStmt(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalForIterStmt(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalForStmtBODY(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalUsesStatement(ParseTree tree, params object[] paramlist)
         {
             throw new NotImplementedException();
         }
