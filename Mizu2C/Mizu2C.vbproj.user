@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
-    <StartArguments>Script.miz ScriptOutput.exe /debug</StartArguments>
+    <StartArguments>Script.miz ScriptOutput.exe</StartArguments>
     <StartWorkingDirectory>C:\Users\alex\Documents\Visual Studio 2010\Projects\Mizu2\Mizu2C\bin\Debug\</StartWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup>

@@ -168,13 +168,29 @@ Module Module1
 
             Return returnsvalues
         Else
-
-            ILgen.Emit(OpCodes.Ldloca, ident.BaseLocal)
             'ILgen.Emit(OpCodes.Box, ident.VariableType)
-            ILgen.Emit(OpCodes.Call, func)
 
-            Return returnsvalues
+            If Not TypeResolver.IsValueType(func.ReflectedType) Then
+                ILgen.Emit(OpCodes.Ldloc, ident.BaseLocal)
+            Else
+                ILgen.Emit(OpCodes.Ldloca, ident.BaseLocal)
+                'ILgen.Emit(OpCodes.Box, ident.VariableType)
+            End If
+
+            For Each param In params 'If any parameters, load them.
+                LoadToken(ILgen, param, locals, err)
+
+                If err Then Return False
+            Next
+            If Not TypeResolver.IsValueType(func.ReflectedType) Then
+                'ILgen.Emit(OpCodes.Constrained, ident.VariableType)
+                ILgen.Emit(OpCodes.Callvirt, func)
+            Else
+                ILgen.Emit(OpCodes.Call, func)
+            End If
         End If
+
+        Return returnsvalues
     End Function
     Public Function HandleTypeResolveFromGetType(assembly As Assembly, str As String, bool As Boolean) As Type
         Return TypeResolver.TypeResolverFromType_GetType(assembly, str, bool)
@@ -209,7 +225,7 @@ Module Module1
     Public Sub HandleStatement(ByVal stmt As ParseNode, ByVal ILgen As ILGenerator, ByRef locals As List(Of LocalBuilderEx), ByRef err As Boolean)
         Select Case stmt.Token.Type
             Case TokenType.ForStatement
-                HandleForStatement(stmt, ILgen, locals, err)
+                'HandleForStatement(stmt, ILgen, locals, err)
                 Return
             Case TokenType.UsesStatement
                 'Dim t As Type = Type.GetType(stmt.Nodes(2).Token.Text, Nothing, New System.Func(Of Assembly, String, Boolean, Type)(AddressOf HandleTypeResolveFromGetType), False, False)
@@ -497,7 +513,7 @@ Module Module1
         line = 1
         col = 0
 
-        For i As Integer = 0 To pos
+        For i As Integer = 0 To pos - 1
             If (src(i) = vbNewLine) Then
                 line += 1
                 col = 1

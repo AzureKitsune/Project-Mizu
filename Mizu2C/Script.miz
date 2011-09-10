@@ -8,3 +8,6 @@ for(var item in list)
 Console.WriteLine(item)
 }
 Console.ReadLine()
+var x = 0
+Console.WriteLine(x.ToString())
+Console.ReadLine()

@@ -99,5 +99,7 @@ Public Class TypeResolver
     Public Shared Function TypeResolverFromType_GetType(assembly As Assembly, str As String, bool As Boolean) As Type
         Throw New NotImplementedException
     End Function
-
+    Public Shared Function IsValueType(ByVal type As Type) As Boolean
+        Return (type Is GetType(String) Or type Is GetType(Integer) Or type Is GetType(Object))
+    End Function
 End Class
