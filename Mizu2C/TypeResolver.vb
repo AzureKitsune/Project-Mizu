@@ -100,6 +100,6 @@ Public Class TypeResolver
         Throw New NotImplementedException
     End Function
     Public Shared Function IsValueType(ByVal type As Type) As Boolean
-        Return (type Is GetType(String) Or type Is GetType(Integer) Or type Is GetType(Object))
+        Return (type Is GetType(String) Or type Is GetType(Integer) Or type Is GetType(Char) Or type Is GetType(Byte))
     End Function
 End Class

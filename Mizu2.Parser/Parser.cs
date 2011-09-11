@@ -587,28 +587,35 @@ namespace Mizu2.Parser
 
 
             
-            tok = scanner.LookAhead(TokenType.VAR, TokenType.IFKW, TokenType.TYPE, TokenType.FOR, TokenType.USES);
-            switch (tok.Type)
-            {
-                case TokenType.VAR:
-                    ParseVariableAssignment(node);
-                    break;
-                case TokenType.IFKW:
-                    ParseIfStatement(node);
-                    break;
-                case TokenType.TYPE:
-                    ParseFuncCall(node);
-                    break;
-                case TokenType.FOR:
-                    ParseForStatement(node);
-                    break;
-                case TokenType.USES:
-                    ParseUsesStatement(node);
-                    break;
-                default:
-                    tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found.", 0x0002, 0, tok.StartPos, tok.StartPos, tok.Length));
-                    break;
-            }
+            do {
+                tok = scanner.LookAhead(TokenType.VAR, TokenType.IFKW, TokenType.TYPE, TokenType.FOR, TokenType.USES);
+                switch (tok.Type)
+                {
+                    case TokenType.VAR:
+                        ParseVariableAssignment(node);
+                        break;
+                    case TokenType.IFKW:
+                        ParseIfStatement(node);
+                        break;
+                    case TokenType.TYPE:
+                        ParseFuncCall(node);
+                        break;
+                    case TokenType.FOR:
+                        ParseForStatement(node);
+                        break;
+                    case TokenType.USES:
+                        ParseUsesStatement(node);
+                        break;
+                    default:
+                        tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found.", 0x0002, 0, tok.StartPos, tok.StartPos, tok.Length));
+                        break;
+                }
+                tok = scanner.LookAhead(TokenType.VAR, TokenType.IFKW, TokenType.TYPE, TokenType.FOR, TokenType.USES);
+            } while (tok.Type == TokenType.VAR
+                || tok.Type == TokenType.IFKW
+                || tok.Type == TokenType.TYPE
+                || tok.Type == TokenType.FOR
+                || tok.Type == TokenType.USES);
 
             
             tok = scanner.LookAhead(TokenType.NEWLINE, TokenType.EMPTYLINE, TokenType.EOF);
@@ -1644,7 +1651,12 @@ namespace Mizu2.Parser
             do {
 
                 
-                ParseIndention(node);
+                tok = scanner.LookAhead(TokenType.TAB, TokenType.FOURSPACE);
+                if (tok.Type == TokenType.TAB
+                    || tok.Type == TokenType.FOURSPACE)
+                {
+                    ParseIndention(node);
+                }
 
                 
                 do {
@@ -1655,9 +1667,14 @@ namespace Mizu2.Parser
                     || tok.Type == TokenType.TYPE
                     || tok.Type == TokenType.FOR
                     || tok.Type == TokenType.USES);
-                tok = scanner.LookAhead(TokenType.TAB, TokenType.FOURSPACE);
+                tok = scanner.LookAhead(TokenType.TAB, TokenType.FOURSPACE, TokenType.VAR, TokenType.IFKW, TokenType.TYPE, TokenType.FOR, TokenType.USES);
             } while (tok.Type == TokenType.TAB
-                || tok.Type == TokenType.FOURSPACE);
+                || tok.Type == TokenType.FOURSPACE
+                || tok.Type == TokenType.VAR
+                || tok.Type == TokenType.IFKW
+                || tok.Type == TokenType.TYPE
+                || tok.Type == TokenType.FOR
+                || tok.Type == TokenType.USES);
 
             parent.Token.UpdateRange(node.Token);
         }

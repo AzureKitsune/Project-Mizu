@@ -80,7 +80,7 @@ VariableExpr -> IDENTIFIER (WHITESPACE)? (GT|GTE|LT|LTE|NOTEQUAL|EQUAL) (WHITESP
 //Class -> (PUBLICCLASSKW|PRIVATECLASSKW|CLASSKW) WHITESPACE IDENTIFIER COLON NEWLINE (IndentedLine)+;
 //Classes -> (Class (NEWLINE|EOF))+;
 //Field -> (PUBLICKW|PRIVATEKW)? WHITESPACE Assignment (NEWLINE|EOF)?;
-Statement -> (VariableAssignment|IfStatement|FuncCall|ForStatement|UsesStatement) (NEWLINE|EMPTYLINE+|EOF?);
+Statement -> (VariableAssignment|IfStatement|FuncCall|ForStatement|UsesStatement)+ (NEWLINE|EMPTYLINE+|EOF?);
 //IndentedLine -> Indention+ (Method|Field);
 //Method -> (PUBLICDEFKW|PRIVATEDEFKW|DEFKW) WHITESPACE IDENTIFIER BROPEN (((IDENTIFIER|NUMBER|FLOAT) COMMA (WHITESPACE))+)? BRCLOSE COLON NEWLINE Statement+;
 Type -> TYPE ((PERIOD IDENTIFIER)+)?;
@@ -97,6 +97,6 @@ MathExpr -> BROPEN (WHITESPACE)? ((NUMBER|IDENTIFIER|MathExpr) WHITESPACE) ((NUM
 ForStatement -> FOR (WHITESPACE)? BROPEN (ForEachStmt|ForIterStmt) BRCLOSE (NEWLINE BRCKOPEN|BRCKOPEN (NEWLINE)?) ForStmtBODY BRCKCLOSE;
 ForEachStmt -> (Type|VAR) WHITESPACE IDENTIFIER WHITESPACE IN WHITESPACE IDENTIFIER;
 ForIterStmt -> NUMBER;
-ForStmtBODY -> (Indention Statement+)+;
+ForStmtBODY -> (Indention? Statement+)+;
 
 UsesStatement -> USES WHITESPACE NAMESPACE;

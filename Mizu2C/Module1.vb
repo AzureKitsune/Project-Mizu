@@ -199,12 +199,50 @@ Module Module1
         Dim forbit As ParseNode = Nothing
         Dim forbody_lab As Label = ILgen.DefineLabel()
         Dim endofstmt As Label = ILgen.DefineLabel()
+        Dim looplab As Label = ILgen.DefineLabel()
         Dim forbody As ParseNode = stmt.Nodes.Find(Function(it) it.Token.Type = TokenType.ForStmtBODY)
 
         If stmt.Nodes(1).Token.Type = TokenType.WHITESPACE Then forbit = stmt.Nodes(3) Else forbit = stmt.Nodes(2)
 
+        Dim forvar As New LocalBuilderEx()
+
         Select Case forbit.Token.Type
             Case TokenType.ForEachStmt
+                Dim var As ParseNode = forbit.Nodes(2)
+                Dim coll As ParseNode = forbit.Nodes.Last()
+
+                Dim loc = locals.Find(Function(it) it.VariableName = coll.Token.Text)
+                If Not loc Is Nothing Then
+                    If loc.VariableType.GetInterfaces().Contains(GetType(IEnumerable)) Then
+                        forvar.BaseLocal = ILgen.DeclareLocal(GetType(Object))
+                        forvar.VariableType = forvar.BaseLocal.LocalType
+                        forvar.VariableName = var.Token.Text
+
+                        If IsDebug Then forvar.BaseLocal.SetLocalSymInfo(forvar.VariableName)
+
+                        Dim enuml As LocalBuilder = ILgen.DeclareLocal(GetType(IEnumerator))
+
+                        'Can iterate using IEnumberable.
+                        LoadToken(ILgen, coll, locals, err)
+                        ILgen.Emit(OpCodes.Callvirt, GetType(IEnumerable).GetMethod("GetEnumerator"))
+                        ILgen.Emit(OpCodes.Stloc, enuml)
+
+                        ILgen.MarkLabel(looplab)
+                        ILgen.Emit(OpCodes.Ldloc, enuml)
+                        ILgen.Emit(OpCodes.Callvirt, GetType(IEnumerator).GetMethod("MoveNext"))
+                        ILgen.Emit(OpCodes.Brfalse, endofstmt) 'If the collection iteration is finished, exit the loop.
+
+                        ILgen.Emit(OpCodes.Ldloc, enuml)
+                        ILgen.Emit(OpCodes.Callvirt, GetType(IEnumerator).GetProperty("Current").GetGetMethod())
+                        ILgen.Emit(OpCodes.Stloc, forvar.BaseLocal)
+                    Else
+                        Return
+                    End If
+                Else
+                    Console.Error.WriteLine("Variable '{0}' doesn't exist.", coll.Token.Text)
+                    err = True
+                    Return
+                End If
 
                 Exit Select
             Case TokenType.ForIterStmt
@@ -213,19 +251,21 @@ Module Module1
 
         Dim tmp_locs As New List(Of LocalBuilderEx)
         locals.ForEach(Sub(it) tmp_locs.Add(it))
+        tmp_locs.Add(forvar)
 
         ILgen.MarkLabel(forbody_lab)
-
-        For Each stmt In forbody.Nodes
-            HandleStatement(stmt, ILgen, tmp_locs, err)
+        ILgen.BeginScope()
+        For Each inner In forbody.Nodes 'To get around some parser stupidity
+            HandleStatement(inner.Nodes(0), ILgen, tmp_locs, err)
         Next
-
+        ILgen.Emit(OpCodes.Br, looplab)
+        ILgen.EndScope()
         ILgen.MarkLabel(endofstmt)
     End Sub
     Public Sub HandleStatement(ByVal stmt As ParseNode, ByVal ILgen As ILGenerator, ByRef locals As List(Of LocalBuilderEx), ByRef err As Boolean)
         Select Case stmt.Token.Type
             Case TokenType.ForStatement
-                'HandleForStatement(stmt, ILgen, locals, err)
+                HandleForStatement(stmt, ILgen, locals, err)
                 Return
             Case TokenType.UsesStatement
                 'Dim t As Type = Type.GetType(stmt.Nodes(2).Token.Text, Nothing, New System.Func(Of Assembly, String, Boolean, Type)(AddressOf HandleTypeResolveFromGetType), False, False)
@@ -351,7 +391,7 @@ Module Module1
                         local.BaseLocal = ILgen.DeclareLocal(local.VariableType)
 
                         If (IsDebug) Then
-                            local.BaseLocal.SetLocalSymInfo(name, loc.Nodes(0).Token.StartPos, loc.Nodes(0).Token.EndPos) 'Set variable name for debug info.
+                            local.BaseLocal.SetLocalSymInfo(name) 'Set variable name for debug info.
                         End If
 
                         ILgen.Emit(OpCodes.Stloc, local.BaseLocal)
@@ -373,7 +413,7 @@ Module Module1
                         local.BaseLocal = ILgen.DeclareLocal(local.VariableType)
 
                         If (IsDebug) Then
-                            local.BaseLocal.SetLocalSymInfo(name, loc.Nodes(0).Token.StartPos, loc.Nodes(0).Token.EndPos) 'Set variable name for debug info.
+                            local.BaseLocal.SetLocalSymInfo(name) 'Set variable name for debug info.
                         End If
 
                         local.VariableName = name

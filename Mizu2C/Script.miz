@@ -5,7 +5,7 @@ list.Add("First string")
 list.Add("Second string")
 for(var item in list)
 {
-Console.WriteLine(item)
+Console.WriteLine(item.ToString())
 }
 Console.ReadLine()
 var x = 0
