@@ -131,7 +131,7 @@ namespace Mizu2.Parser
             Patterns.Add(TokenType.FOURSPACE, regex);
             Tokens.Add(TokenType.FOURSPACE);
 
-            regex = new Regex(@"(?!(uses|var|if|for))[a-zA-Z][a-zA-Z0-9_]*", RegexOptions.Compiled);
+            regex = new Regex(@"(?!(uses|var|if|for|handle|while|true|false))[a-zA-Z][a-zA-Z0-9_]*", RegexOptions.Compiled);
             Patterns.Add(TokenType.IDENTIFIER, regex);
             Tokens.Add(TokenType.IDENTIFIER);
 
@@ -143,11 +143,11 @@ namespace Mizu2.Parser
             Patterns.Add(TokenType.FLOAT, regex);
             Tokens.Add(TokenType.FLOAT);
 
-            regex = new Regex(@"(?!(\s|\n))[a-zA-Z_]*(\.[a-zA-Z0-9_]*)?", RegexOptions.Compiled);
+            regex = new Regex(@"(?!(\s|\n))[a-zA-Z_]*((\.[a-zA-Z0-9_]*)+)?\b", RegexOptions.Compiled);
             Patterns.Add(TokenType.NAMESPACE, regex);
             Tokens.Add(TokenType.NAMESPACE);
 
-            regex = new Regex(@"\b(?!(uses|var|if|for))[a-zA-Z0-9_]*((\.[a-zA-Z0-9_]*)?)*\b", RegexOptions.Compiled);
+            regex = new Regex(@"\b(?!(uses|var|if|for|handle|while))[a-zA-Z0-9_]*((\.[a-zA-Z0-9_]*)?)*\b", RegexOptions.Compiled);
             Patterns.Add(TokenType.TYPE, regex);
             Tokens.Add(TokenType.TYPE);
 
@@ -246,6 +246,14 @@ namespace Mizu2.Parser
             regex = new Regex(@"uses", RegexOptions.Compiled);
             Patterns.Add(TokenType.USES, regex);
             Tokens.Add(TokenType.USES);
+
+            regex = new Regex(@"handle", RegexOptions.Compiled);
+            Patterns.Add(TokenType.HANDLE, regex);
+            Tokens.Add(TokenType.HANDLE);
+
+            regex = new Regex(@"while", RegexOptions.Compiled);
+            Patterns.Add(TokenType.WHILE, regex);
+            Tokens.Add(TokenType.WHILE);
 
 
         }
@@ -390,61 +398,67 @@ namespace Mizu2.Parser
             ForIterStmt= 18,
             ForStmtBODY= 19,
             UsesStatement= 20,
+            HandleStatement= 21,
+            HandleStmtBODY= 22,
+            WhileStatement= 23,
+            WhileStmtBODY= 24,
 
             //Terminal tokens:
-            GT      = 21,
-            GTE     = 22,
-            DEQUAL  = 23,
-            LT      = 24,
-            LTE     = 25,
-            NOTEQUAL= 26,
-            OPENBRCK= 27,
-            CLOSEBRCK= 28,
-            STRING  = 29,
-            COMMA   = 30,
-            NEWLINE = 31,
-            EQUAL   = 32,
-            WHITESPACE= 33,
-            OPENBR  = 34,
-            CLOSEBR = 35,
-            PERIOD  = 36,
-            COLON   = 37,
-            PLUS    = 38,
-            MINUS   = 39,
-            MULTI   = 40,
-            DIV     = 41,
-            EOF     = 42,
-            TAB     = 43,
-            FOURSPACE= 44,
-            IDENTIFIER= 45,
-            NUMBER  = 46,
-            FLOAT   = 47,
-            NAMESPACE= 48,
-            TYPE    = 49,
-            NULLKW  = 50,
-            CLASSKW = 51,
-            PUBLICKW= 52,
-            PRIVATEKW= 53,
-            PUBLICCLASSKW= 54,
-            PRIVATECLASSKW= 55,
-            DEFKW   = 56,
-            PUBLICDEFKW= 57,
-            PRIVATEDEFKW= 58,
-            BROPEN  = 59,
-            BRCLOSE = 60,
-            EMPTYLINE= 61,
-            BRCKOPEN= 62,
-            BRCKCLOSE= 63,
-            IFKW    = 64,
-            TRUE    = 65,
-            FALSE   = 66,
-            VAR     = 67,
-            NEW     = 68,
-            AS      = 69,
-            ELSE    = 70,
-            FOR     = 71,
-            IN      = 72,
-            USES    = 73
+            GT      = 25,
+            GTE     = 26,
+            DEQUAL  = 27,
+            LT      = 28,
+            LTE     = 29,
+            NOTEQUAL= 30,
+            OPENBRCK= 31,
+            CLOSEBRCK= 32,
+            STRING  = 33,
+            COMMA   = 34,
+            NEWLINE = 35,
+            EQUAL   = 36,
+            WHITESPACE= 37,
+            OPENBR  = 38,
+            CLOSEBR = 39,
+            PERIOD  = 40,
+            COLON   = 41,
+            PLUS    = 42,
+            MINUS   = 43,
+            MULTI   = 44,
+            DIV     = 45,
+            EOF     = 46,
+            TAB     = 47,
+            FOURSPACE= 48,
+            IDENTIFIER= 49,
+            NUMBER  = 50,
+            FLOAT   = 51,
+            NAMESPACE= 52,
+            TYPE    = 53,
+            NULLKW  = 54,
+            CLASSKW = 55,
+            PUBLICKW= 56,
+            PRIVATEKW= 57,
+            PUBLICCLASSKW= 58,
+            PRIVATECLASSKW= 59,
+            DEFKW   = 60,
+            PUBLICDEFKW= 61,
+            PRIVATEDEFKW= 62,
+            BROPEN  = 63,
+            BRCLOSE = 64,
+            EMPTYLINE= 65,
+            BRCKOPEN= 66,
+            BRCKCLOSE= 67,
+            IFKW    = 68,
+            TRUE    = 69,
+            FALSE   = 70,
+            VAR     = 71,
+            NEW     = 72,
+            AS      = 73,
+            ELSE    = 74,
+            FOR     = 75,
+            IN      = 76,
+            USES    = 77,
+            HANDLE  = 78,
+            WHILE   = 79
     }
 
     public class Token

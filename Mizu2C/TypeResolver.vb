@@ -14,6 +14,15 @@ Public Class TypeResolver
                 Else : Exit For
                 End If
             Next
+            For Each asm In References
+                For Each ns In Namespaces
+                    obj = asm.GetType(ns + "." + name)
+                    If obj = Nothing Then
+                        Continue For
+                    Else : Exit For
+                    End If
+                Next
+            Next
         End If
         Return obj
     End Function

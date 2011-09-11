@@ -39,11 +39,11 @@ DIV -> @"\/";
 EOF -> @"^\s*$";
 TAB -> @"\t";
 FOURSPACE -> @"\s\s\s\s";
-[Color(0, 0, 255)] IDENTIFIER -> @"(?!(uses|var|if|for))[a-zA-Z][a-zA-Z0-9_]*"; //Used for matching variables without picking up keywords.
+[Color(0, 0, 255)] IDENTIFIER -> @"(?!(uses|var|if|for|handle|while|true|false))[a-zA-Z][a-zA-Z0-9_]*"; //Used for matching variables without picking up keywords.
 [Color(255, 0, 0)] NUMBER -> @"(\-)?[0-9]+";
 [Color(255, 0, 0)] FLOAT -> @"(\-)?[0-9]+\.[0-9]+";
-NAMESPACE -> @"(?!(\s|\n))[a-zA-Z_]*(\.[a-zA-Z0-9_]*)?";
-TYPE -> @"\b(?!(uses|var|if|for))[a-zA-Z0-9_]*((\.[a-zA-Z0-9_]*)?)*\b";
+NAMESPACE -> @"(?!(\s|\n))[a-zA-Z_]*((\.[a-zA-Z0-9_]*)+)?\b";
+TYPE -> @"\b(?!(uses|var|if|for|handle|while))[a-zA-Z0-9_]*((\.[a-zA-Z0-9_]*)?)*\b";
 NULLKW -> @"(null|nil)";
 CLASSKW -> @"class";
 PUBLICKW -> @"public";
@@ -71,23 +71,25 @@ ELSE -> @"else";
 FOR -> @"for";
 IN -> @"in";
 USES -> @"uses";
+HANDLE -> @"handle";
+WHILE -> @"while";
 
 Start -> Statement+;
 Boolean -> (TRUE|FALSE);
-Assignment -> IDENTIFIER (WHITESPACE)? (EQUAL (WHITESPACE)? (FuncCall|IDENTIFIER|NUMBER|FLOAT|NULLKW|STRING|MathExpr)|AS WHITESPACE NEW WHITESPACE Type BROPEN (((IDENTIFIER|NUMBER|FLOAT) COMMA (WHITESPACE)?)+)? BRCLOSE);
+Assignment -> IDENTIFIER (WHITESPACE)? (EQUAL (WHITESPACE)? (FuncCall|IDENTIFIER|NUMBER|FLOAT|NULLKW|STRING|MathExpr)|AS WHITESPACE NEW WHITESPACE Type BROPEN (((IDENTIFIER|NUMBER|FLOAT|STRING) COMMA? (WHITESPACE)?)+)? BRCLOSE);
 VariableAssignment -> VAR WHITESPACE Assignment;
 VariableExpr -> IDENTIFIER (WHITESPACE)? (GT|GTE|LT|LTE|NOTEQUAL|EQUAL) (WHITESPACE)? (IDENTIFIER|NUMBER|FLOAT|NULLKW|STRING);
 //Class -> (PUBLICCLASSKW|PRIVATECLASSKW|CLASSKW) WHITESPACE IDENTIFIER COLON NEWLINE (IndentedLine)+;
 //Classes -> (Class (NEWLINE|EOF))+;
 //Field -> (PUBLICKW|PRIVATEKW)? WHITESPACE Assignment (NEWLINE|EOF)?;
-Statement -> (VariableAssignment|IfStatement|FuncCall|ForStatement|UsesStatement)+ (NEWLINE|EMPTYLINE+|EOF?);
+Statement -> (VariableAssignment|IfStatement|FuncCall|ForStatement|UsesStatement|WhileStatement|HandleStatement)+ (NEWLINE|EMPTYLINE+|EOF?);
 //IndentedLine -> Indention+ (Method|Field);
 //Method -> (PUBLICDEFKW|PRIVATEDEFKW|DEFKW) WHITESPACE IDENTIFIER BROPEN (((IDENTIFIER|NUMBER|FLOAT) COMMA (WHITESPACE))+)? BRCLOSE COLON NEWLINE Statement+;
 Type -> TYPE ((PERIOD IDENTIFIER)+)?;
 
 IfStatement -> IFKW WHITESPACE (VariableExpr|(BROPEN VariableExpr BRCLOSE)) (NEWLINE BRCKOPEN|BRCKOPEN (NEWLINE)?) IfStmtIFBody BRCKCLOSE (ELSE (NEWLINE BRCKOPEN|BRCKOPEN (NEWLINE)) IfStmtELSEBody BRCKCLOSE)?;
-IfStmtIFBody -> (Indention Statement+)+;
-IfStmtELSEBody -> (Indention Statement+)+;
+IfStmtIFBody -> (Indention? Statement+)+;
+IfStmtELSEBody -> (Indention? Statement+)+;
 
 Operator -> (PLUS|MINUS|MULTI|DIV);
 Indention -> (TAB|FOURSPACE);
@@ -100,3 +102,9 @@ ForIterStmt -> NUMBER;
 ForStmtBODY -> (Indention? Statement+)+;
 
 UsesStatement -> USES WHITESPACE NAMESPACE;
+
+HandleStatement -> HANDLE WHITESPACE Type BROPEN ((IDENTIFIER) (COMMA (IDENTIFIER))?)? BRCLOSE (WHITESPACE BRCKOPEN NEWLINE|NEWLINE BRCKOPEN NEWLINE) HandleStmtBODY BRCKCLOSE;
+HandleStmtBODY ->(Indention? Statement+)+; 
+
+WhileStatement -> WHILE (WHITESPACE)? BROPEN (VariableExpr|Boolean) BRCLOSE (WHITESPACE BRCKOPEN NEWLINE+|NEWLINE BRCKOPEN NEWLINE) WhileStmtBODY (NEWLINE)? BRCKCLOSE;
+WhileStmtBODY -> (Indention? Statement+)+;

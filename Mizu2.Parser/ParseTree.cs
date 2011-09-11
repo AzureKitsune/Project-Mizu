@@ -224,6 +224,18 @@ namespace Mizu2.Parser
                 case TokenType.UsesStatement:
                     Value = EvalUsesStatement(tree, paramlist);
                     break;
+                case TokenType.HandleStatement:
+                    Value = EvalHandleStatement(tree, paramlist);
+                    break;
+                case TokenType.HandleStmtBODY:
+                    Value = EvalHandleStmtBODY(tree, paramlist);
+                    break;
+                case TokenType.WhileStatement:
+                    Value = EvalWhileStatement(tree, paramlist);
+                    break;
+                case TokenType.WhileStmtBODY:
+                    Value = EvalWhileStmtBODY(tree, paramlist);
+                    break;
 
                 default:
                     Value = Token.Text;
@@ -323,6 +335,26 @@ namespace Mizu2.Parser
         }
 
         protected virtual object EvalUsesStatement(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalHandleStatement(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalHandleStmtBODY(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalWhileStatement(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalWhileStmtBODY(ParseTree tree, params object[] paramlist)
         {
             throw new NotImplementedException();
         }

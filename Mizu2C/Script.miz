@@ -1,13 +1,3 @@
-﻿uses System
-uses System.Collections
-var list as new ArrayList()
-list.Add("First string")
-list.Add("Second string")
-for(var item in list)
-{
-Console.WriteLine(item.ToString())
-}
-Console.ReadLine()
-var x = 0
-Console.WriteLine(x.ToString())
-Console.ReadLine()
+﻿uses System.Windows.Forms
+var window as new Form("Test Window")
+window.ShowDialog()

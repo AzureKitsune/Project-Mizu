@@ -32,9 +32,23 @@ Module Module1
 
                 If args.Count > 2 Then
                     For i As Integer = 2 To args.Count - 1
-                        Select Case args(i).ToLower
+                        Dim str As String = args(i).ToLower
+                        Select Case str
                             Case "/debug" : IsDebug = True
                             Case "/force" : ForceCompile = True
+                            Case Else
+                                If str.StartsWith("/r:") Or str.StartsWith("/reference:") Then
+                                    'If a reference was specified, attempt to resolve and add it.
+                                    Dim full = args(i)
+                                    Dim ref As String = full.Substring(full.IndexOf(":") + 1)
+                                    Dim asm = Nothing
+                                    Try
+                                        asm = Assembly.LoadFrom(ref) 'Try loading from the compiler's directory.
+                                    Catch ex As Exception
+                                        asm = Assembly.LoadFrom(New FileInfo(GetType(Object).Module.FullyQualifiedName).DirectoryName + "\" + ref) 'Attempt to load from the GAC.
+                                    End Try
+                                    References.Add(asm)
+                                End If
                         End Select
                     Next
                 End If
@@ -56,6 +70,8 @@ Module Module1
     Public Code As String = Nothing
     Public Doc As System.Diagnostics.SymbolStore.ISymbolDocumentWriter
     Public Namespaces As New List(Of String)
+    Public TBuilder As TypeBuilder = Nothing
+    Public References As New List(Of Assembly)
     Public Function Compile(ByVal input As FileInfo, output As FileInfo, ByVal tree As ParseTree) As Boolean
         'The majority of this was ported from the first Mizu (Mizu Concept 1).
 
@@ -72,7 +88,6 @@ Module Module1
             Dim db_const = debugattr.GetConstructor(New Type() {GetType(DebuggableAttribute.DebuggingModes)})
             Dim db_builder = New CustomAttributeBuilder(db_const, New Object() {DebuggableAttribute.DebuggingModes.DisableOptimizations Or
             DebuggableAttribute.DebuggingModes.Default})
-
             ab.SetCustomAttribute(db_builder)
         End If
 
@@ -84,8 +99,8 @@ Module Module1
             Doc = mb.DefineDocument(input.FullName, Guid.Empty, Guid.Empty, Guid.Empty)
         End If
 
-        Dim tb = mb.DefineType("App") 'Defines main type.
-        Dim entrypoint = tb.DefineMethod("Main", MethodAttributes.Public + MethodAttributes.Static) 'Makes the main method.
+        TBuilder = mb.DefineType("App") 'Defines main type.
+        Dim entrypoint = TBuilder.DefineMethod("Main", MethodAttributes.Public + MethodAttributes.Static) 'Makes the main method.
 
         Dim ILgen = entrypoint.GetILGenerator(3072) 'gets the IL generator
 
@@ -121,7 +136,7 @@ Module Module1
 
         ab.SetEntryPoint(entrypoint, PEFileKinds.ConsoleApplication) 'Sets entry point
 
-        Dim finishedtype = tb.CreateType() 'Compile the type
+        Dim finishedtype = TBuilder.CreateType() 'Compile the type
 
         ab.Save(output.Name) 'Save
         Return True
@@ -195,6 +210,9 @@ Module Module1
     Public Function HandleTypeResolveFromGetType(assembly As Assembly, str As String, bool As Boolean) As Type
         Return TypeResolver.TypeResolverFromType_GetType(assembly, str, bool)
     End Function
+    Public Sub HandleHandleStatement(ByVal stmt As ParseNode, ByVal ILgen As ILGenerator, ByRef locals As List(Of LocalBuilderEx), ByRef err As Boolean)
+
+    End Sub
     Public Sub HandleForStatement(ByVal stmt As ParseNode, ByVal ILgen As ILGenerator, ByRef locals As List(Of LocalBuilderEx), ByRef err As Boolean)
         Dim forbit As ParseNode = Nothing
         Dim forbody_lab As Label = ILgen.DefineLabel()
@@ -233,7 +251,7 @@ Module Module1
                         ILgen.Emit(OpCodes.Brfalse, endofstmt) 'If the collection iteration is finished, exit the loop.
 
                         ILgen.Emit(OpCodes.Ldloc, enuml)
-                        ILgen.Emit(OpCodes.Callvirt, GetType(IEnumerator).GetProperty("Current").GetGetMethod())
+                        ILgen.Emit(OpCodes.Callvirt, GetType(IEnumerator).GetProperty("Current").GetGetMethod()) 'Gets the current item in the collection and saves it to the loop variable.
                         ILgen.Emit(OpCodes.Stloc, forvar.BaseLocal)
                     Else
                         Return
@@ -266,6 +284,11 @@ Module Module1
         Select Case stmt.Token.Type
             Case TokenType.ForStatement
                 HandleForStatement(stmt, ILgen, locals, err)
+                Return
+            Case TokenType.WhileStatement
+                Return
+            Case TokenType.HandleStatement
+                HandleHandleStatement(stmt, ILgen, locals, err)
                 Return
             Case TokenType.UsesStatement
                 'Dim t As Type = Type.GetType(stmt.Nodes(2).Token.Text, Nothing, New System.Func(Of Assembly, String, Boolean, Type)(AddressOf HandleTypeResolveFromGetType), False, False)
