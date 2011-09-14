@@ -8,7 +8,7 @@ Module Module1
 
     Sub Main(ByVal args As String())
         Console.WriteLine("Mizu C2 Compiler - v{0}", Assembly.GetExecutingAssembly().GetName.Version.ToString())
-        Console.WriteLine("Developed by Amrykid - http://gthub.com/Amrykid/Project-Mizu")
+        Console.WriteLine("Developed by Amrykid - http://github.com/Amrykid/Project-Mizu")
 
         If args.Count >= 2 Then
             If IO.File.Exists(args(0)) = True Then
