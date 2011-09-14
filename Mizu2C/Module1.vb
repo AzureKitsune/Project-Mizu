@@ -179,6 +179,19 @@ Module Module1
         LoadOperator(middle, ILgen)
     End Sub
     Public Function HandleFunctionCall(ByVal stmt As ParseNode, ByVal ILgen As ILGenerator, ByRef locals As List(Of LocalBuilderEx), ByRef err As Boolean, Optional ByRef returnval As Object = Nothing) As Boolean
+        If (IsDebug) Then
+
+            Dim sline = 0, scol = 0
+
+            FindLineAndCol(Code, stmt.Token.StartPos, sline, scol)
+
+            Dim eline = 0, ecol = 0
+
+            FindLineAndCol(Code, stmt.Token.EndPos, eline, ecol)
+
+            ILgen.MarkSequencePoint(Doc, sline, scol, eline, ecol)
+        End If
+
         Dim returnsvalues As Boolean = False
 
         Select stmt.Nodes(1).Token.Type
@@ -420,34 +433,10 @@ Module Module1
                 Dim ns As String = stmt.Nodes(2).Token.Text
 
                 If Not Namespaces.Contains(ns) Then Namespaces.Add(ns)
-                If (IsDebug) Then
-
-                    Dim sline = 0, scol = 0
-
-                    FindLineAndCol(Code, stmt.Token.StartPos, sline, scol)
-
-                    Dim eline = 0, ecol = 0
-
-                    FindLineAndCol(Code, stmt.Token.EndPos, eline, ecol)
-
-                    ILgen.MarkSequencePoint(Doc, sline, scol, eline, ecol)
-                End If
+                
 
                 Return
             Case TokenType.FuncCall
-                If (IsDebug) Then
-
-                    Dim sline = 0, scol = 0
-
-                    FindLineAndCol(Code, stmt.Token.StartPos, sline, scol)
-
-                    Dim eline = 0, ecol = 0
-
-                    FindLineAndCol(Code, stmt.Token.EndPos, eline, ecol)
-
-                    ILgen.MarkSequencePoint(Doc, sline, scol, eline, ecol)
-                End If
-
                 Dim returns = HandleFunctionCall(stmt, ILgen, locals, err)
                 If returns = True Then
                     ILgen.Emit(OpCodes.Pop) 'Discard the value because in this context, we don't care about it.
@@ -597,6 +586,19 @@ Module Module1
         End Select
     End Sub
     Private Sub LoadToken(ByVal ILgen As ILGenerator, ByVal value As ParseNode, ByRef locals As List(Of LocalBuilderEx), ByRef Err As Boolean, Optional ByRef local As LocalBuilderEx = Nothing)
+        If (IsDebug) Then
+
+            Dim sline = 0, scol = 0
+
+            FindLineAndCol(Code, value.Token.StartPos, sline, scol)
+
+            Dim eline = 0, ecol = 0
+
+            FindLineAndCol(Code, value.Token.EndPos, eline, ecol)
+
+            ILgen.MarkSequencePoint(Doc, sline, scol, eline, ecol)
+        End If
+
         Select Case value.Token.Type
             Case TokenType.IDENTIFIER
                 Dim idnt = locals.Find(Function(it) it.VariableName = value.Token.Text)
@@ -702,7 +704,7 @@ Module Module1
         col = 0
 
         For i As Integer = 0 To pos - 1
-            If (src(i) = vbNewLine) Then
+            If (src(i) = Environment.NewLine(0)) Then
                 line += 1
                 col = 1
             Else
