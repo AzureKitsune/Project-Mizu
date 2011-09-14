@@ -50,9 +50,14 @@ Module Module1
                                     Try
                                         asm = Assembly.LoadFrom(ref) 'Try loading from the compiler's directory.
                                     Catch ex As Exception
-                                        asm = Assembly.LoadFrom(New FileInfo(GetType(Object).Module.FullyQualifiedName).DirectoryName + "\" + ref) 'Attempt to load from the GAC.
+                                        Try
+                                            asm = Assembly.LoadFrom(New FileInfo(GetType(Object).Module.FullyQualifiedName).DirectoryName + "\" + ref) 'Attempt to load from the GAC.
+                                        Catch ex2 As Exception
+                                            Console.Error.WriteLine("Error: Unable to resolve {0}.", ref)
+                                            Return
+                                        End Try
+                                        References.Add(asm)
                                     End Try
-                                    References.Add(asm)
                                     Exit Select
                                 End If
 
@@ -72,11 +77,11 @@ Module Module1
                 Compile(input, output, tree)
 
             Else
-                Console.Error.WriteLine("File doesn't exist!")
+                Console.Error.WriteLine("Error: File doesn't exist.")
                 Return
             End If
         Else
-            Console.Error.WriteLine("Not enough parameters.")
+            Console.Error.WriteLine("Error: Not enough parameters.")
             Return
         End If
     End Sub
@@ -541,7 +546,7 @@ Module Module1
 
                         Dim typename As String = loc.Nodes(6).Nodes(0).Token.Text
 
-                        Dim constrs As ParseNode() = loc.Nodes(6).Nodes.GetRange(1, loc.Nodes(6).Nodes.Count - 1).ToArray()
+                        Dim constrs As ParseNode() = loc.Nodes.GetRange(7, loc.Nodes.Count - 7).ToArray()
                         constrs = Array.FindAll(constrs, Function(it) it.Token.Type <> TokenType.BROPEN And it.Token.Type <> TokenType.BRCLOSE)
 
                         Dim objType As Type = TypeResolver.ResolveType(typename)
@@ -565,7 +570,16 @@ Module Module1
                         ElseIf constrs.Length > 0 Then
 
                             '' Unfinished
-                            Dim constrInfo As ConstructorInfo = Nothing
+                            Dim params = TypeResolver.ResolveTypesFromParseNodeArray(constrs)
+
+                            Dim constrInfo As ConstructorInfo = objType.GetConstructor(params)
+
+                            If constrInfo Is Nothing Then
+                                err = True
+                                Console.Error.WriteLine("Error: No constructor for {0} exists that takes {1} parameters.", objType.FullName, params.Length)
+                                Return
+                            End If
+
                             For Each constrItem As ParseNode In constrs
                                 LoadToken(ILgen, constrItem, locals, err)
                                 If err = True Then Return

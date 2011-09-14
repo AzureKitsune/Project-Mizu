@@ -1,4 +1,4 @@
 ﻿uses System
-var input = Console.ReadLine()
-Console.WriteLine(input.ToString())
-Console.ReadLine()
+uses System.Windows.Forms
+var window as new Form("Title")
+window.ShowDialog()
