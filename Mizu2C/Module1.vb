@@ -37,8 +37,10 @@ Module Module1
                     For i As Integer = 2 To args.Count - 1
                         Dim str As String = args(i).ToLower
                         Select Case str
-                            Case "/debug" : IsDebug = True
-                            Case "/force" : ForceCompile = True
+                            Case "/force"
+                                ForceCompile = True
+                                Console.WriteLine("- Compiler will ignore syntax errors and compile the readable code.")
+                                Exit Select
                             Case Else
                                 If str.StartsWith("/r:") Or str.StartsWith("/reference:") Then
                                     'If a reference was specified, attempt to resolve and add it.
@@ -51,6 +53,16 @@ Module Module1
                                         asm = Assembly.LoadFrom(New FileInfo(GetType(Object).Module.FullyQualifiedName).DirectoryName + "\" + ref) 'Attempt to load from the GAC.
                                     End Try
                                     References.Add(asm)
+                                    Exit Select
+                                End If
+
+                                If str.StartsWith("/debug") And IsDebug = False Then
+                                    Console.WriteLine("- Compiler will emit debugging information.")
+                                    IsDebug = True
+                                    If str.StartsWith("/debug:+") And IsDebugBreak = False Then
+                                        Console.WriteLine("-- Debugger will break into output executable; User-defined breakpoint will be placed at the start of the application.")
+                                        IsDebugBreak = True
+                                    End If
                                 End If
                         End Select
                     Next
@@ -70,6 +82,7 @@ Module Module1
     End Sub
     Public IsDebug As Boolean = False
     Public ForceCompile As Boolean = True
+    Public IsDebugBreak As Boolean = False
     Public Code As String = Nothing
     Public Doc As System.Diagnostics.SymbolStore.ISymbolDocumentWriter
     Public Namespaces As New List(Of String)
@@ -108,6 +121,8 @@ Module Module1
         Dim ILgen = entrypoint.GetILGenerator(3072) 'gets the IL generator
 
         Dim locals As New List(Of LocalBuilderEx) 'A list to hold variables.
+
+        If IsDebugBreak Then ILgen.Emit(OpCodes.Break) 'Entrypoint breakpoint.
 
         ILgen.BeginExceptionBlock() 'Start a try statement.
 
