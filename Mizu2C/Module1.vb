@@ -7,6 +7,9 @@ Imports System.IO
 Module Module1
 
     Sub Main(ByVal args As String())
+        Console.WriteLine("Mizu C2 Compiler - v{0}", Assembly.GetExecutingAssembly().GetName.Version.ToString())
+        Console.WriteLine("Developed by Amrykid - http://gthub.com/Amrykid/Project-Mizu")
+
         If args.Count >= 2 Then
             If IO.File.Exists(args(0)) = True Then
                 Dim scanner As New Scanner
@@ -163,55 +166,160 @@ Module Module1
     Public Function HandleFunctionCall(ByVal stmt As ParseNode, ByVal ILgen As ILGenerator, ByRef locals As List(Of LocalBuilderEx), ByRef err As Boolean, Optional ByRef returnval As Object = Nothing) As Boolean
         Dim returnsvalues As Boolean = False
 
-        Dim params As ParseNode() = Nothing
-        Dim usedident As Boolean = False
-        Dim ident As LocalBuilderEx = Nothing
-        Dim func = TypeResolver.ResolveFunctionFromParseNode(stmt, locals, params, usedident, ident)
+        Select stmt.Nodes(1).Token.Type
+            Case TokenType.FuncCall_Method
+                Dim params As ParseNode() = Nothing
+                Dim usedident As Boolean = False
+                Dim ident As LocalBuilderEx = Nothing
+                Dim func = TypeResolver.ResolveFunctionFromParseNode(stmt, locals, params, usedident, ident)
 
-        returnval = func.ReturnType
-        returnsvalues = func.ReturnType <> GetType(Void) 'If it doesn't equal Void, it returns a useable value.
+                If func Is Nothing Then
+                    func = TypeResolver.ResolvePropertyFromParseNode(stmt, locals, params, usedident, ident).GetGetMethod()
+                End If
 
-        If usedident = False Then
+                If func Is Nothing Then
+                    err = True
+                    Console.Error.WriteLine("Function/Property was not found on type.")
+                End If
 
-            For Each param In params 'If any parameters, load them.
-                LoadToken(ILgen, param, locals, err)
+                returnval = func.ReturnType
+                returnsvalues = func.ReturnType <> GetType(Void) 'If it doesn't equal Void, it returns a useable value.
 
-                If err Then Return False
-            Next
+                If usedident = False Then
 
-            ILgen.Emit(OpCodes.Call, func)
+                    For Each param In params 'If any parameters, load them.
+                        LoadToken(ILgen, param, locals, err)
 
-            Return returnsvalues
-        Else
-            'ILgen.Emit(OpCodes.Box, ident.VariableType)
+                        If err Then Return False
+                    Next
 
-            If Not TypeResolver.IsValueType(func.ReflectedType) Then
-                ILgen.Emit(OpCodes.Ldloc, ident.BaseLocal)
-            Else
-                ILgen.Emit(OpCodes.Ldloca, ident.BaseLocal)
-                'ILgen.Emit(OpCodes.Box, ident.VariableType)
-            End If
+                    ILgen.Emit(OpCodes.Call, func)
 
-            For Each param In params 'If any parameters, load them.
-                LoadToken(ILgen, param, locals, err)
+                    Return returnsvalues
+                Else
+                    'ILgen.Emit(OpCodes.Box, ident.VariableType)
 
-                If err Then Return False
-            Next
-            If Not TypeResolver.IsValueType(func.ReflectedType) Then
-                'ILgen.Emit(OpCodes.Constrained, ident.VariableType)
-                ILgen.Emit(OpCodes.Callvirt, func)
-            Else
-                ILgen.Emit(OpCodes.Call, func)
-            End If
-        End If
+                    If Not TypeResolver.IsValueType(func.ReflectedType) Then
+                        ILgen.Emit(OpCodes.Ldloca, ident.BaseLocal)
+                    Else
+                        ILgen.Emit(OpCodes.Ldloc, ident.BaseLocal)
+                        'ILgen.Emit(OpCodes.Box, ident.VariableType)
+                    End If
 
-        Return returnsvalues
+                    For Each param In params 'If any parameters, load them.
+                        LoadToken(ILgen, param, locals, err)
+
+                        If err Then Return False
+                    Next
+                    If Not TypeResolver.IsValueType(func.ReflectedType) Then
+                        'ILgen.Emit(OpCodes.Constrained, ident.VariableType)
+                        ILgen.Emit(OpCodes.Callvirt, func)
+                    Else
+                        ILgen.Emit(OpCodes.Call, func)
+                    End If
+                End If
+
+                Return returnsvalues
+            Case TokenType.FuncCall_SetProperty
+                Dim params As ParseNode() = Nothing
+                Dim usedident As Boolean = False
+                Dim ident As LocalBuilderEx = Nothing
+                Dim func = TypeResolver.ResolvePropertyFromParseNode(stmt, locals, params, usedident, ident).GetSetMethod()
+
+
+                    If func Is Nothing Then
+                        err = True
+                        Console.Error.WriteLine("Function/Property was not found on type.")
+                End If
+                Dim val = stmt.Nodes(1).Nodes.Last()
+
+                If usedident = True Then
+                    If Not TypeResolver.IsValueType(func.ReflectedType) Then
+                        ILgen.Emit(OpCodes.Ldloc, ident.BaseLocal)
+                    Else
+                        ILgen.Emit(OpCodes.Ldloca, ident.BaseLocal)
+                        'ILgen.Emit(OpCodes.Box, ident.VariableType)
+                    End If
+                End If
+
+                LoadToken(ILgen, val, locals, err)
+
+                If Not TypeResolver.IsValueType(func.ReflectedType) Then
+                    'ILgen.Emit(OpCodes.Constrained, ident.VariableType)
+                    ILgen.Emit(OpCodes.Callvirt, func)
+                Else
+                    ILgen.Emit(OpCodes.Call, func)
+                End If
+
+                Return (False)
+        End Select
+        Return False
     End Function
     Public Function HandleTypeResolveFromGetType(assembly As Assembly, str As String, bool As Boolean) As Type
         Return TypeResolver.TypeResolverFromType_GetType(assembly, str, bool)
     End Function
     Public Sub HandleHandleStatement(ByVal stmt As ParseNode, ByVal ILgen As ILGenerator, ByRef locals As List(Of LocalBuilderEx), ByRef err As Boolean)
 
+        Dim params As ParseNode() = stmt.Nodes.FindAll(Function(it) it.Token.Type = TokenType.IDENTIFIER).ToArray()
+        Dim usedident As Boolean = False
+        Dim ident As LocalBuilderEx = Nothing
+        Dim eventinfo = TypeResolver.ResolveEventFromParseNode(stmt, locals, usedident, ident)
+        Dim func = eventinfo.GetAddMethod
+        Dim body As ParseNode = stmt.Nodes.Find(Function(it) it.Token.Type = TokenType.HandleStmtBODY)
+
+        If func Is Nothing Then
+            err = True
+            Console.Error.WriteLine("Function/Property was not found on type.")
+        End If
+
+        Dim paramtypes = TypeResolver.ReturnTypeArrayOfCount(params.Length, GetType(Object))
+
+        Dim handler = TBuilder.DefineMethod(eventinfo.Name + New Random().Next(0, 1000).ToString(), MethodAttributes.Static, CallingConventions.Any, GetType(Void), paramtypes)
+
+        Dim hGen = handler.GetILGenerator()
+
+        Dim hLocals As New List(Of LocalBuilderEx)
+        hGen.BeginScope()
+
+        'Add handler variables to a fresh list.
+        For i As Integer = 0 To params.Length - 1
+            Dim loc As New LocalBuilderEx
+            loc.BaseLocal = hGen.DeclareLocal(paramtypes(i))
+            loc.VariableName = params(i).Token.Text
+            loc.VariableType = paramtypes(i)
+            hLocals.Add(loc)
+        Next
+
+        For Each s In body.Nodes
+            HandleStatement(s.Nodes(0), hGen, hLocals, err)
+        Next
+
+        hGen.Emit(OpCodes.Ret)
+        hGen.EndScope()
+
+        Dim del As Type = eventinfo.EventHandlerType
+
+        'Create a delegate
+        ILgen.Emit(OpCodes.Ldstr, del.FullName)
+        ILgen.Emit(OpCodes.Call, GetType(Type).GetMethod("GetType", New Type() {GetType(String)}))
+
+        ILgen.Emit(OpCodes.Ldstr, handler.Name)
+        ILgen.Emit(OpCodes.Call, GetType(Type).GetMethod("GetMethod", New Type() {GetType(String)}))
+
+        ILgen.Emit(OpCodes.Call, GetType([Delegate]).GetMethod("CreateDelegate", New Type() {GetType(Type), GetType(MethodInfo)}))
+
+        'Call the function to attach the event handler.
+        If usedident = False Then
+            ILgen.Emit(OpCodes.Call, func)
+        Else
+            'ILgen.Emit(OpCodes.Box, ident.VariableType)
+
+            If Not TypeResolver.IsValueType(func.ReflectedType) Then
+                ILgen.Emit(OpCodes.Ldloc, ident.BaseLocal)
+                'ILgen.Emit(OpCodes.Constrained, ident.VariableType)
+                ILgen.Emit(OpCodes.Callvirt, func)
+            End If
+        End If
     End Sub
     Public Sub HandleForStatement(ByVal stmt As ParseNode, ByVal ILgen As ILGenerator, ByRef locals As List(Of LocalBuilderEx), ByRef err As Boolean)
         Dim forbit As ParseNode = Nothing
@@ -289,6 +397,8 @@ Module Module1
                 Return
             Case TokenType.HandleStatement
                 HandleHandleStatement(stmt, ILgen, locals, err)
+                Return
+            Case TokenType.PropertySetStatement
                 Return
             Case TokenType.UsesStatement
                 'Dim t As Type = Type.GetType(stmt.Nodes(2).Token.Text, Nothing, New System.Func(Of Assembly, String, Boolean, Type)(AddressOf HandleTypeResolveFromGetType), False, False)

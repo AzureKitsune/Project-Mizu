@@ -1,3 +1,4 @@
-﻿uses System.Windows.Forms
-var window as new Form("Test Window")
-window.ShowDialog()
+﻿uses System
+var input = Console.ReadLine()
+Console.WriteLine(input.ToString())
+Console.ReadLine()

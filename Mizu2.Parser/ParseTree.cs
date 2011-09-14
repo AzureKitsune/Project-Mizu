@@ -206,6 +206,15 @@ namespace Mizu2.Parser
                 case TokenType.FuncCall:
                     Value = EvalFuncCall(tree, paramlist);
                     break;
+                case TokenType.FuncCall_Method:
+                    Value = EvalFuncCall_Method(tree, paramlist);
+                    break;
+                case TokenType.FuncCall_SetProperty:
+                    Value = EvalFuncCall_SetProperty(tree, paramlist);
+                    break;
+                case TokenType.PropertySetStatement:
+                    Value = EvalPropertySetStatement(tree, paramlist);
+                    break;
                 case TokenType.MathExpr:
                     Value = EvalMathExpr(tree, paramlist);
                     break;
@@ -305,6 +314,21 @@ namespace Mizu2.Parser
         }
 
         protected virtual object EvalFuncCall(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalFuncCall_Method(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalFuncCall_SetProperty(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalPropertySetStatement(ParseTree tree, params object[] paramlist)
         {
             throw new NotImplementedException();
         }

@@ -11,7 +11,7 @@ Public Class TypeResolver
                 obj = Type.GetType(ns + "." + name)
                 If obj = Nothing Then
                     Continue For
-                Else : Exit For
+                Else : Return obj
                 End If
             Next
             For Each asm In References
@@ -19,7 +19,7 @@ Public Class TypeResolver
                     obj = asm.GetType(ns + "." + name)
                     If obj = Nothing Then
                         Continue For
-                    Else : Exit For
+                    Else : Return obj
                     End If
                 Next
             Next
@@ -90,19 +90,91 @@ Public Class TypeResolver
         ident = locals.Find(
             Function(it) it.VariableName = classname) 'Variables can be instances of classes. Check to see if its classing a variable instead of a static object instance.
 
-        out_params = stmt.Nodes.GetRange(1, stmt.Nodes.Count - 1).FindAll(Function(it) it.Token.Type <> TokenType.WHITESPACE And it.Token.Type <> TokenType.BROPEN And it.Token.Type <> TokenType.BRCLOSE And it.Token.Type <> TokenType.COMMA).ToArray()
+        out_params = stmt.Nodes(1).Nodes.GetRange(0, stmt.Nodes(1).Nodes.Count - 1).FindAll(Function(it) it.Token.Type <> TokenType.WHITESPACE And it.Token.Type <> TokenType.BROPEN And it.Token.Type <> TokenType.BRCLOSE And it.Token.Type <> TokenType.COMMA And it.Token.Type <> TokenType._UNDETERMINED_).ToArray()
 
         If ident Is Nothing Then
             'Calling a static object instance.
             Dim obj As Type = TypeResolver.ResolveType(classname)
 
-            Dim func = Nothing
-            func = obj.GetMethod(funcname, TypeResolver.ResolveTypesFromParseNodeArray(out_params, locals))
-            Return func
+            Try
+                Dim func = Nothing
+                func = obj.GetMethod(funcname, TypeResolver.ResolveTypesFromParseNodeArray(out_params, locals))
+                Return func
+            Catch ex As Exception
+                Return Nothing
+            End Try
         Else
             out_used_ident = True
-            Dim func = ident.VariableType.GetMethod(funcname, TypeResolver.ResolveTypesFromParseNodeArray(out_params, locals))
-            Return func
+            Try
+                Dim func = ident.VariableType.GetMethod(funcname, TypeResolver.ResolveTypesFromParseNodeArray(out_params, locals))
+                Return func
+            Catch ex As Exception
+                Return Nothing
+            End Try
+        End If
+    End Function
+    Public Shared Function ResolvePropertyFromParseNode(ByVal stmt As ParseNode, ByVal locals As List(Of LocalBuilderEx), Optional ByRef out_params As ParseNode() = Nothing, Optional ByRef out_used_ident As Boolean = False, Optional ByRef ident As LocalBuilderEx = Nothing) As PropertyInfo
+        Dim text As String = stmt.Nodes(0).Nodes(0).Token.Text
+
+        Dim lastper As Integer = text.LastIndexOf(".")
+
+        Dim classname As String = text.Substring(0, lastper)
+
+        Dim funcname As String = text.Substring(lastper + 1)
+
+        ident = locals.Find(
+            Function(it) it.VariableName = classname) 'Variables can be instances of classes. Check to see if its classing a variable instead of a static object instance.
+
+        'out_params = stmt.Nodes(1).Nodes.GetRange(0, stmt.Nodes.Count - 1).FindAll(Function(it) it.Token.Type <> TokenType.WHITESPACE And it.Token.Type <> TokenType.BROPEN And it.Token.Type <> TokenType.BRCLOSE And it.Token.Type <> TokenType.COMMA And it.Token.Type <> TokenType._UNDETERMINED_).ToArray()
+
+        If ident Is Nothing Then
+            'Calling a static object instance.
+            Dim obj As Type = TypeResolver.ResolveType(classname)
+
+            Try
+                Dim func = Nothing
+                func = obj.GetProperty(funcname)
+                Return func
+            Catch ex As Exception : Return Nothing
+            End Try
+        Else
+            out_used_ident = True
+            Try
+                Dim func = ident.VariableType.GetProperty(funcname)
+                Return func
+            Catch ex As Exception : Return Nothing
+            End Try
+        End If
+    End Function
+    Public Shared Function ResolveEventFromParseNode(ByVal stmt As ParseNode, ByVal locals As List(Of LocalBuilderEx), Optional ByRef out_used_ident As Boolean = False, Optional ByRef ident As LocalBuilderEx = Nothing) As EventInfo
+        Dim text As String = stmt.Nodes(2).Nodes(0).Token.Text
+
+        Dim lastper As Integer = text.LastIndexOf(".")
+
+        Dim classname As String = text.Substring(0, lastper)
+
+        Dim funcname As String = text.Substring(lastper + 1)
+
+        ident = locals.Find(
+            Function(it) it.VariableName = classname) 'Variables can be instances of classes. Check to see if its classing a variable instead of a static object instance.
+
+        If ident Is Nothing Then
+            'Calling a static object instance.
+            Dim obj As Type = TypeResolver.ResolveType(classname)
+
+            Try
+                Dim func = Nothing
+                func = obj.GetEvent(funcname)
+                Return func
+            Catch ex As Exception : Return Nothing
+            End Try
+        Else
+            out_used_ident = True
+            Try
+                Dim func = ident.VariableType.GetEvent(funcname)
+                Return func
+            Catch ex As Exception : Return Nothing
+            End Try
         End If
     End Function
     Public Shared Function TypeResolverFromType_GetType(assembly As Assembly, str As String, bool As Boolean) As Type
@@ -110,5 +182,12 @@ Public Class TypeResolver
     End Function
     Public Shared Function IsValueType(ByVal type As Type) As Boolean
         Return (type Is GetType(String) Or type Is GetType(Integer) Or type Is GetType(Char) Or type Is GetType(Byte))
+    End Function
+    Public Shared Function ReturnTypeArrayOfCount(ByVal count As Integer, ByVal type As Type) As Type()
+        Dim t As New List(Of Type)
+        For i As Integer = 0 To count - 1
+            t.Add(type)
+        Next
+        Return t.ToArray
     End Function
 End Class

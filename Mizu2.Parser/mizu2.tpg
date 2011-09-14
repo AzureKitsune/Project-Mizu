@@ -73,6 +73,7 @@ IN -> @"in";
 USES -> @"uses";
 HANDLE -> @"handle";
 WHILE -> @"while";
+SET -> @"set";
 
 Start -> Statement+;
 Boolean -> (TRUE|FALSE);
@@ -82,7 +83,7 @@ VariableExpr -> IDENTIFIER (WHITESPACE)? (GT|GTE|LT|LTE|NOTEQUAL|EQUAL) (WHITESP
 //Class -> (PUBLICCLASSKW|PRIVATECLASSKW|CLASSKW) WHITESPACE IDENTIFIER COLON NEWLINE (IndentedLine)+;
 //Classes -> (Class (NEWLINE|EOF))+;
 //Field -> (PUBLICKW|PRIVATEKW)? WHITESPACE Assignment (NEWLINE|EOF)?;
-Statement -> (VariableAssignment|IfStatement|FuncCall|ForStatement|UsesStatement|WhileStatement|HandleStatement)+ (NEWLINE|EMPTYLINE+|EOF?);
+Statement -> (VariableAssignment|IfStatement|FuncCall|ForStatement|UsesStatement|WhileStatement|HandleStatement|PropertySetStatement)+ (NEWLINE|EMPTYLINE+|EOF?);
 //IndentedLine -> Indention+ (Method|Field);
 //Method -> (PUBLICDEFKW|PRIVATEDEFKW|DEFKW) WHITESPACE IDENTIFIER BROPEN (((IDENTIFIER|NUMBER|FLOAT) COMMA (WHITESPACE))+)? BRCLOSE COLON NEWLINE Statement+;
 Type -> TYPE ((PERIOD IDENTIFIER)+)?;
@@ -93,7 +94,12 @@ IfStmtELSEBody -> (Indention? Statement+)+;
 
 Operator -> (PLUS|MINUS|MULTI|DIV);
 Indention -> (TAB|FOURSPACE);
-FuncCall -> Type BROPEN ((IDENTIFIER|FuncCall|NUMBER|FLOAT|STRING) (COMMA (IDENTIFIER|FuncCall|NUMBER|FLOAT|STRING))?)? BRCLOSE;
+FuncCall -> Type (FuncCall_Method|FuncCall_SetProperty)?;
+//The following can be a method or property.
+FuncCall_Method -> (BROPEN ((IDENTIFIER|FuncCall|NUMBER|FLOAT|STRING) (COMMA (IDENTIFIER|FuncCall|NUMBER|FLOAT|STRING))?)? BRCLOSE)?;
+FuncCall_SetProperty ->  WHITESPACE EQUAL WHITESPACE (IDENTIFIER|FuncCall|NUMBER|FLOAT|STRING);
+
+PropertySetStatement-> SET WHITESPACE Type WHITESPACE EQUAL WHITESPACE (IDENTIFIER|FuncCall|NUMBER|FLOAT|STRING);
 MathExpr -> BROPEN (WHITESPACE)? ((NUMBER|IDENTIFIER|MathExpr) WHITESPACE) ((NUMBER|IDENTIFIER|MathExpr) WHITESPACE) Operator BRCLOSE;
 
 ForStatement -> FOR (WHITESPACE)? BROPEN (ForEachStmt|ForIterStmt) BRCLOSE (NEWLINE BRCKOPEN|BRCKOPEN (NEWLINE)?) ForStmtBODY BRCKCLOSE;
