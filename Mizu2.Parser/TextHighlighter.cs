@@ -480,20 +480,35 @@ namespace Mizu2.Parser
                     case TokenType.STRING:
                         sb.Append(@"{{\cf1 ");
                         break;
-                    case TokenType.IDENTIFIER:
+                    case TokenType.NUMBER:
                         sb.Append(@"{{\cf2 ");
                         break;
-                    case TokenType.NUMBER:
+                    case TokenType.FLOAT:
                         sb.Append(@"{{\cf3 ");
                         break;
-                    case TokenType.FLOAT:
+                    case TokenType.BROPEN:
                         sb.Append(@"{{\cf4 ");
                         break;
-                    case TokenType.BROPEN:
+                    case TokenType.BRCLOSE:
                         sb.Append(@"{{\cf5 ");
                         break;
-                    case TokenType.BRCLOSE:
+                    case TokenType.IFKW:
                         sb.Append(@"{{\cf6 ");
+                        break;
+                    case TokenType.VAR:
+                        sb.Append(@"{{\cf7 ");
+                        break;
+                    case TokenType.NEW:
+                        sb.Append(@"{{\cf8 ");
+                        break;
+                    case TokenType.AS:
+                        sb.Append(@"{{\cf9 ");
+                        break;
+                    case TokenType.FOR:
+                        sb.Append(@"{{\cf10 ");
+                        break;
+                    case TokenType.USES:
+                        sb.Append(@"{{\cf11 ");
                         break;
 
                 default:
@@ -505,7 +520,7 @@ namespace Mizu2.Parser
         // define the color palette to be used here
         private void AddRtfHeader(StringBuilder sb)
         {
-            sb.Insert(0, @"{\rtf1\ansi\deff0{\fonttbl{\f0\fnil\fcharset0 Consolas;}}{\colortbl;\red255\green0\blue0;\red0\green0\blue255;\red255\green0\blue0;\red255\green0\blue0;\red0\green0\blue255;\red0\green0\blue255;}\viewkind4\uc1\pard\lang1033\f0\fs20");
+            sb.Insert(0, @"{\rtf1\ansi\deff0{\fonttbl{\f0\fnil\fcharset0 Consolas;}}{\colortbl;\red255\green0\blue0;\red255\green0\blue0;\red255\green0\blue0;\red0\green0\blue255;\red0\green0\blue255;\red0\green0\blue255;\red0\green0\blue255;\red0\green0\blue255;\red0\green0\blue255;\red0\green0\blue255;\red0\green0\blue255;}\viewkind4\uc1\pard\lang1033\f0\fs20");
         }
 
         private void AddRtfEnd(StringBuilder sb)

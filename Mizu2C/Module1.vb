@@ -233,9 +233,9 @@ Module Module1
                     'ILgen.Emit(OpCodes.Box, ident.VariableType)
 
                     If Not TypeResolver.IsValueType(func.ReflectedType) Then
-                        ILgen.Emit(OpCodes.Ldloca, ident.BaseLocal)
-                    Else
                         ILgen.Emit(OpCodes.Ldloc, ident.BaseLocal)
+                    Else 'TODO Figure out when is the time to use Ldloc and Ldloca because its confusing. Ldloc loads the variable, Ldloca loads the 'address'.
+                        ILgen.Emit(OpCodes.Ldloca, ident.BaseLocal)
                         'ILgen.Emit(OpCodes.Box, ident.VariableType)
                     End If
 
@@ -307,7 +307,30 @@ Module Module1
 
         Dim paramtypes = TypeResolver.ReturnTypeArrayOfCount(params.Length, GetType(Object))
 
-        Dim handler = TBuilder.DefineMethod(eventinfo.Name + New Random().Next(0, 1000).ToString(), MethodAttributes.Static, CallingConventions.Any, GetType(Void), paramtypes)
+        Dim del As Type = eventinfo.EventHandlerType
+        Dim contructors = del.GetConstructors()
+        Dim construct = contructors(0)
+
+        ''Hack I've found:
+        ''All handlers have a BeginInvoke method with their handling method's parameters
+        ''leading in front of 2 other parameters (IAsyncCallBack and Object).
+        Dim construct_params = Array.Find(eventinfo.EventHandlerType.GetMethods(), (Function(it) it.Name = "BeginInvoke")).GetParameters()
+
+        construct_params = construct_params.Reverse().ToArray().Skip(2).ToArray().Reverse().ToArray() 'Probably not the best way but HEY, it works.
+        ''
+
+
+        If params.Length <> construct_params.Length Then
+            err = True
+            Console.Error.WriteLine("Not enough parameters to handle event.")
+            Return
+        End If
+
+        For i As Integer = 0 To params.Length - 1
+            paramtypes(i) = construct_params(i).ParameterType 'Earlier, I filled a buffer array of GetType(Object). Now, I'm specifically setting the parameters to their correct type.
+        Next
+
+        Dim handler = TBuilder.DefineMethod(eventinfo.Name + New Random().Next(0, 1000).ToString(), MethodAttributes.Static, CallingConventions.Standard, GetType(Void), paramtypes)
 
         Dim hGen = handler.GetILGenerator()
 
@@ -330,16 +353,16 @@ Module Module1
         hGen.Emit(OpCodes.Ret)
         hGen.EndScope()
 
-        Dim del As Type = eventinfo.EventHandlerType
+
+
+        If usedident = True Then ILgen.Emit(OpCodes.Ldloc, ident.BaseLocal)
+
+
 
         'Create a delegate
-        ILgen.Emit(OpCodes.Ldstr, del.FullName)
-        ILgen.Emit(OpCodes.Call, GetType(Type).GetMethod("GetType", New Type() {GetType(String)}))
-
-        ILgen.Emit(OpCodes.Ldstr, handler.Name)
-        ILgen.Emit(OpCodes.Call, GetType(Type).GetMethod("GetMethod", New Type() {GetType(String)}))
-
-        ILgen.Emit(OpCodes.Call, GetType([Delegate]).GetMethod("CreateDelegate", New Type() {GetType(Type), GetType(MethodInfo)}))
+        ILgen.Emit(OpCodes.Ldnull)
+        ILgen.Emit(OpCodes.Ldftn, handler)
+        ILgen.Emit(OpCodes.Newobj, construct)
 
         'Call the function to attach the event handler.
         If usedident = False Then
@@ -348,8 +371,6 @@ Module Module1
             'ILgen.Emit(OpCodes.Box, ident.VariableType)
 
             If Not TypeResolver.IsValueType(func.ReflectedType) Then
-                ILgen.Emit(OpCodes.Ldloc, ident.BaseLocal)
-                'ILgen.Emit(OpCodes.Constrained, ident.VariableType)
                 ILgen.Emit(OpCodes.Callvirt, func)
             End If
         End If

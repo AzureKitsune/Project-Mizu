@@ -649,7 +649,7 @@ namespace Mizu2.Parser
                 || tok.Type == TokenType.SET);
 
             
-            tok = scanner.LookAhead(TokenType.NEWLINE, TokenType.EMPTYLINE, TokenType.EOF);
+            tok = scanner.LookAhead(TokenType.NEWLINE, TokenType.EOF);
             switch (tok.Type)
             {
                 case TokenType.NEWLINE:
@@ -661,19 +661,6 @@ namespace Mizu2.Parser
                         tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.NEWLINE.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
                         return;
                     }
-                    break;
-                case TokenType.EMPTYLINE:
-                    do {
-                        tok = scanner.Scan(TokenType.EMPTYLINE);
-                        n = node.CreateNode(tok, tok.ToString() );
-                        node.Token.UpdateRange(tok);
-                        node.Nodes.Add(n);
-                        if (tok.Type != TokenType.EMPTYLINE) {
-                            tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.EMPTYLINE.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
-                            return;
-                        }
-                        tok = scanner.LookAhead(TokenType.EMPTYLINE);
-                    } while (tok.Type == TokenType.EMPTYLINE);
                     break;
                 case TokenType.EOF:
                     tok = scanner.LookAhead(TokenType.EOF);
