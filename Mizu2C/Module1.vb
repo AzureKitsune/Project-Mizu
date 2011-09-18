@@ -18,7 +18,7 @@ Module Module1
                 Code = IO.File.ReadAllText(args(0))
 
                 If Code.Length = 0 Then
-                    Console.Error.WriteLine("Source code file cannot be empty.")
+                    Console.Error.WriteLine("Error: Source code file cannot be empty.")
                     Return
                 End If
 
@@ -28,7 +28,7 @@ Module Module1
 
                 If tree.Errors.Count > 0 Then
                     For Each Err As ParseError In tree.Errors
-                        Console.Error.WriteLine("[{0},{1}] Error: {2}", Err.Line + 1, Err.Position, Err.Message)
+                        Console.Error.WriteLine("[{0}, {1}] Error: {2}", Err.Line + 1, Err.Position, Err.Message)
                     Next
                     If ForceCompile = False Then Return
                 End If
@@ -77,11 +77,12 @@ Module Module1
                 Compile(input, output, tree)
 
             Else
-                Console.Error.WriteLine("Error: File doesn't exist.")
+                Console.Error.WriteLine("Error: File doesn't exist - {0}", args(0))
                 Return
             End If
         Else
             Console.Error.WriteLine("Error: Not enough parameters.")
+            Console.WriteLine("Accepted input: <inputfile> <outputfile> <switches>")
             Return
         End If
     End Sub
@@ -186,15 +187,11 @@ Module Module1
     Public Function HandleFunctionCall(ByVal stmt As ParseNode, ByVal ILgen As ILGenerator, ByRef locals As List(Of LocalBuilderEx), ByRef err As Boolean, Optional ByRef returnval As Object = Nothing) As Boolean
         If (IsDebug) Then
 
-            Dim sline = 0, scol = 0
+            Dim sline = stmt.GetLineAndCol(Code)
 
-            FindLineAndCol(Code, stmt.Token.StartPos, sline, scol)
+            Dim eline = stmt.GetLineAndColEnd(Code)
 
-            Dim eline = 0, ecol = 0
-
-            FindLineAndCol(Code, stmt.Token.EndPos, eline, ecol)
-
-            ILgen.MarkSequencePoint(Doc, sline, scol, eline, ecol)
+            ILgen.MarkSequencePoint(Doc, sline.Line, sline.Col, eline.Line, eline.Col)
         End If
 
         Dim returnsvalues As Boolean = False
@@ -207,12 +204,14 @@ Module Module1
                 Dim func = TypeResolver.ResolveFunctionFromParseNode(stmt, locals, params, usedident, ident)
 
                 If func Is Nothing Then
-                    func = TypeResolver.ResolvePropertyFromParseNode(stmt, locals, params, usedident, ident).GetGetMethod()
+                        func = TypeResolver.ResolvePropertyFromParseNode(stmt, locals, params, usedident, ident).GetGetMethod()
                 End If
 
                 If func Is Nothing Then
+                    Dim sline = stmt.GetLineAndCol(Code)
                     err = True
-                    Console.Error.WriteLine("Function/Property was not found on type.")
+                    Console.Error.WriteLine("[{0}, {1}] Error: Function/Property was not found on type.", sline.Line, sline.Col)
+                    Return False
                 End If
 
                 returnval = func.ReturnType
@@ -260,10 +259,12 @@ Module Module1
                 Dim func = TypeResolver.ResolvePropertyFromParseNode(stmt, locals, params, usedident, ident).GetSetMethod()
 
 
-                    If func Is Nothing Then
-                        err = True
-                        Console.Error.WriteLine("Function/Property was not found on type.")
+                If func Is Nothing Then
+                    Dim sline = stmt.GetLineAndCol(Code)
+                    err = True
+                    Console.Error.WriteLine("[{0}, {1}] Error: Function/Property was not found on type.", sline.Line, sline.Col)
                 End If
+
                 Dim val = stmt.Nodes(1).Nodes.Last()
 
                 If usedident = True Then
@@ -302,7 +303,12 @@ Module Module1
 
         If func Is Nothing Then
             err = True
-            Console.Error.WriteLine("Function/Property was not found on type.")
+            Dim sline = stmt.GetLineAndCol(Code)
+
+            'Dim eline = stmt.GetLineAndColEnd(Code)
+
+            Console.Error.WriteLine("[{0}, {1}] Error: Function/Property was not found on type.", sline.Line, sline.Col)
+            Return
         End If
 
         Dim paramtypes = TypeResolver.ReturnTypeArrayOfCount(params.Length, GetType(Object))
@@ -321,8 +327,9 @@ Module Module1
 
 
         If params.Length <> construct_params.Length Then
+            Dim sline = stmt.GetLineAndCol(Code)
             err = True
-            Console.Error.WriteLine("Not enough parameters to handle event.")
+            Console.Error.WriteLine("[{0}, {1}] Error: Not enough parameters to handle event.", sline.Line, sline.Col)
             Return
         End If
 
@@ -419,7 +426,8 @@ Module Module1
                         Return
                     End If
                 Else
-                    Console.Error.WriteLine("Variable '{0}' doesn't exist.", coll.Token.Text)
+                    Dim sline = stmt.GetLineAndCol(Code)
+                    Console.Error.WriteLine("[{1}, {2}] Error: Variable '{0}' doesn't exist.", coll.Token.Text, sline.Line, sline.Col)
                     err = True
                     Return
                 End If
@@ -458,8 +466,14 @@ Module Module1
                 'Dim t As Type = Type.GetType(stmt.Nodes(2).Token.Text, Nothing, New System.Func(Of Assembly, String, Boolean, Type)(AddressOf HandleTypeResolveFromGetType), False, False)
                 Dim ns As String = stmt.Nodes(2).Token.Text
 
-                If Not Namespaces.Contains(ns) Then Namespaces.Add(ns)
-                
+                If TypeResolver.IsNamespaceAvailable(ns) Then
+
+                    If Not Namespaces.Contains(ns) Then Namespaces.Add(ns)
+                Else
+                    err = True
+                    Dim sline = stmt.GetLineAndCol(Code)
+                    Console.Error.WriteLine("[{0}, {1}] Error: Namespace: '{2}' doesn't exist!", sline.Line, sline.Col, ns)
+                End If
 
                 Return
             Case TokenType.FuncCall
@@ -522,11 +536,11 @@ Module Module1
 
                     Dim sline = 0, scol = 0
 
-                    FindLineAndCol(Code, stmt.Token.StartPos, sline, scol)
+                    FindLineAndCol(stmt.Token.StartPos, Code, sline, scol)
 
                     Dim eline = 0, ecol = 0
 
-                    FindLineAndCol(Code, stmt.Token.EndPos, eline, ecol)
+                    FindLineAndCol(stmt.Token.EndPos, Code, eline, ecol)
 
                     ILgen.MarkSequencePoint(Doc, sline, scol, eline, ecol)
                 End If
@@ -560,7 +574,6 @@ Module Module1
                         ILgen.Emit(OpCodes.Stloc, local.BaseLocal)
 
                         locals.Add(local)
-                        Return
                         Return
                     Case TokenType.AS
 
@@ -597,7 +610,8 @@ Module Module1
 
                             If constrInfo Is Nothing Then
                                 err = True
-                                Console.Error.WriteLine("Error: No constructor for {0} exists that takes {1} parameters.", objType.FullName, params.Length)
+                                Dim sline = stmt.GetLineAndCol(Code)
+                                Console.Error.WriteLine("[{2}, {3}] Error: No constructor for {0} exists that takes {1} parameters.", objType.FullName, params.Length, sline.Line, sline.Col)
                                 Return
                             End If
 
@@ -610,7 +624,8 @@ Module Module1
                             ILgen.Emit(OpCodes.Newobj, constrInfo)
                             ILgen.Emit(OpCodes.Stloc, local.BaseLocal)
                         Else
-                            Console.Error.WriteLine("Error: Invalid amount of parameters.")
+                            Dim sline = stmt.GetLineAndCol(Code)
+                            Console.Error.WriteLine("[{0}, {1}] Error: Invalid amount of parameters.", sline.Line, sline.Col)
                             err = True
                             Return
                         End If
@@ -625,11 +640,11 @@ Module Module1
 
             Dim sline = 0, scol = 0
 
-            FindLineAndCol(Code, value.Token.StartPos, sline, scol)
+            FindLineAndCol(value.Token.StartPos, Code, sline, scol)
 
             Dim eline = 0, ecol = 0
 
-            FindLineAndCol(Code, value.Token.EndPos, eline, ecol)
+            FindLineAndCol(value.Token.EndPos, Code, eline, ecol)
 
             ILgen.MarkSequencePoint(Doc, sline, scol, eline, ecol)
         End If
@@ -640,7 +655,8 @@ Module Module1
 
                 If idnt Is Nothing Then
                     Err = True
-                    Console.Error.WriteLine("Error: Variable '{0}' doesn't exist in this context.", value.Token.Text)
+                    Dim sline = value.GetLineAndCol(Code)
+                    Console.Error.WriteLine("[{1}, {2}] Error: Variable '{0}' doesn't exist in this context.", value.Token.Text, sline.Line, sline.Col)
                     Return
                 End If
 
@@ -722,32 +738,6 @@ Module Module1
                 Return
         End Select
     End Sub
-    Private Function GetLineAndCol(ByVal src As String, ByVal pos As Integer) As Object
-        Dim line = 0, col = 0
-
-        Dim eo As New Object
-        FindLineAndCol(src, pos, line, col)
-
-        eo.Line = line
-        eo.Col = col
-        Return eo
-    End Function
-    Private Sub FindLineAndCol(ByVal src As String, ByVal pos As Integer, ByRef line As Integer, col As Integer)
-        ' http://www.codeproject.com/Messages/3852786/Re-ParseError-line-numbers-always-0.aspx
-
-        line = 1
-        col = 0
-
-        For i As Integer = 0 To pos - 1
-            If (src(i) = Environment.NewLine(0)) Then
-                line += 1
-                col = 1
-            Else
-                col += 1
-            End If
-        Next
-    End Sub
-
     Private Sub HandleMathExpr(expr As ParseNode, ILgen As ILGenerator, locals As List(Of LocalBuilderEx), Err As Boolean)
         Dim expr1 As ParseNode = Nothing, expr2 As ParseNode = Nothing, op As ParseNode = Nothing
         Dim expr1_ind As Integer = 0

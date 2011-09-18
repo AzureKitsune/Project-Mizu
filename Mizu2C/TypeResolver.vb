@@ -190,4 +190,14 @@ Public Class TypeResolver
         Next
         Return t.ToArray
     End Function
+    Public Shared Function IsNamespaceAvailable(ByVal ns As String) As Boolean
+        'Modded port of -> http://stackoverflow.com/questions/2606322/c-how-to-check-if-string-is-a-namespace
+        For Each assembly In AppDomain.CurrentDomain.GetAssemblies()
+            If (assembly.GetTypes().Any(Function(type) type.Namespace = ns)) Then
+                Return True
+            End If
+        Next
+
+        Return False
+    End Function
 End Class
