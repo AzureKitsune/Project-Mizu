@@ -1,11 +1,9 @@
 ﻿uses System
-uses System.Windows.Forms
-var window as new Form()
-var tb as new TextBox()
-var controls = window.Controls()
-controls.Add(tb)
-tb.Dock = 5
-handle tb.TextChanged(sender,e) {
-MessageBox.Show("Text Changed")
+uses System.Collections
+var list as new ArrayList()
+list.Add("first")
+list.Add("second")
+for(var item in list)
+{
+Console.WriteLine(item.ToString())
 }
-window.ShowDialog()

@@ -1,0 +1,1 @@
+﻿<Assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Mizu2.Test")>

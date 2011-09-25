@@ -8,17 +8,19 @@ Imports System.Runtime.InteropServices
 
 ' Review the values of the assembly attributes
 
-<Assembly: AssemblyTitle("Mizu2C")> 
+<Assembly: AssemblyTitle("Miz2.Test")> 
 <Assembly: AssemblyDescription("")> 
 <Assembly: AssemblyCompany("")> 
-<Assembly: AssemblyProduct("Mizu2C")> 
+<Assembly: AssemblyProduct("Miz2.Test")> 
 <Assembly: AssemblyCopyright("Copyright ©  2011")> 
 <Assembly: AssemblyTrademark("")> 
+
+<Assembly: CLSCompliant(True)> 
 
 <Assembly: ComVisible(False)>
 
 'The following GUID is for the ID of the typelib if this project is exposed to COM
-<Assembly: Guid("3ff16bec-8f66-45b8-bb26-04786cac462a")> 
+<Assembly: Guid("ab429412-53d2-4524-8da7-18eca1ea87cc")> 
 
 ' Version information for an assembly consists of the following four values:
 '
@@ -31,5 +33,5 @@ Imports System.Runtime.InteropServices
 ' by using the '*' as shown below:
 ' <Assembly: AssemblyVersion("1.0.*")> 
 
-<Assembly: AssemblyVersion("1.0.225.0")> 
-<Assembly: AssemblyFileVersion("1.0.225.0")> 
+<Assembly: AssemblyVersion("1.0.0.0")> 
+<Assembly: AssemblyFileVersion("1.0.0.0")> 
