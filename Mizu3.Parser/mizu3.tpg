@@ -1,0 +1,97 @@
+//Tiny Parser Generator v1.3
+//Copyright © Herre Kuijpers 2008-2012
+
+//Tiny Parser Generator v1.3
+//Copyright © Herre Kuijpers 2008-2012
+
+// By default the TextHighlighter is not generated.
+// Set its Generate attribute to true
+<% @TextHighlighter Generate="True" %>
+// the Generate parameter specifies wether the file
+// should be generated. By default this is set to True
+<% @Parser Generate="True" %>
+<% @Scanner Generate="True" %>
+
+<% @ParseTree Generate="True" %>
+
+<% @TinyPG Namespace="Mizu3.Parser" Language="C#" OutputPath="C:\\Users\\alex\\Documents\\visual studio 2010\\Projects\\Mizu3\\Mizu3.Parser\\" %>
+
+//IDENTIFIER -> @"(?!(uses|var|if|for|handle|while|true|false))[a-zA-Z][a-zA-Z0-9_]*";
+IDENTIFIER -> @"(?!(itr|fun|let|new|import|from))[a-zA-Z][a-zA-Z0-9_]*";
+TYPE -> @"\b[a-zA-Z0-9_]*((\.[a-zA-Z0-9_]*))*\b";
+LET -> @"let";
+ITER -> @"itr";
+[Color(255, 0, 0)] STRING -> @"\"".+?\""";
+[Skip] EMPTYLINE -> @"(\r\n|\n)\s(?=\S)";
+[Skip] WHITESPACE       -> @"\s+";
+[Skip] TAB -> @"\t+";
+[Skip] NEWLINE -> @"(\r\n|\n)+";
+[Skip] COMMENTBLOCK     -> @"/\*[^*]*\*+(?:[^/*][^*]*\*+)*/";
+EOF              -> @"^\s*$";
+EQUAL -> @"\=";
+PLUS -> @"\+";
+MINUS -> @"\-";
+MULTI -> @"\*";
+DIV -> @"\/";
+SEMICOLON -> @"\;";
+[Color(255, 0, 0)] NUMBER -> @"(\-)?[0-9]+";
+[Color(255, 0, 0)] FLOAT -> @"(\-)?[0-9]+\.[0-9]+";
+ARROW -> @"\-\>";
+BRCKOPEN -> @"\{";
+BRCKCLOSE -> @"\}";
+[Color(0, 0, 255)] BROPEN -> @"\("; 
+[Color(0, 0, 255)] BRCLOSE -> @"\)";
+COMMA -> @"\,";
+FUNC -> @"fun";
+COLON -> @"\:";
+OPENBR -> @"\[";
+CLOSEBR -> @"\]";
+RETURN -> @"ret";
+NEW -> @"new";
+IMPORT -> @"import";
+FROM -> @"from";
+OUT -> @"out"; //Wrapper for Console.Write
+
+
+
+
+Start -> Statements? EOF;
+Statements -> Statement+;
+Statement -> (LetStatement|RetStatement|ReAssignmentStatement|ImportStatement);
+ImportStatement -> IMPORT TYPE (FROM STRING)? SEMICOLON;
+ReAssignmentStatement -> IDENTIFIER (ArrayIndexExpr)? EQUAL (Argument|FuncStatement) SEMICOLON;
+LetStatement -> LET IDENTIFIER EQUAL (Argument|IterStatement|FuncStatement|ObjectCreatetion|ArrayIndexExpr|MathExpr) SEMICOLON;
+IterStatement -> ITER OPENBR ((NUMBER|FLOAT) COLON (NUMBER|FLOAT|IDENTIFIER)|IDENTIFIER) CLOSEBR ARROW (FuncCall|BRCKOPEN Statements BRCKCLOSE);
+FuncStatement -> FUNC BROPEN (IDENTIFIER+)? BRCLOSE ARROW (Statement | BRCKOPEN Statements BRCKCLOSE);
+TypeFuncDeclartion -> IDENTIFIER IDENTIFIER EQUAL FuncStatement;
+RetStatement -> RETURN (Argument)? SEMICOLON;
+ 
+Argument -> (STRING|NUMBER|FLOAT|IDENTIFIER (ArrayIndexExpr)?);
+FuncCall -> TYPE BROPEN ((Argument COMMA?)+)? BRCLOSE;
+ArrayIndexExpr -> OPENBR (NUMBER|IDENTIFIER|MathExpr) CLOSEBR;
+ObjectCreatetion -> NEW TYPE;
+MathExpr -> (BROPEN)? OPERATOR (NUMBER|MathExpr|IDENTIFIER) (NUMBER|MathExpr|IDENTIFIER) (BRCLOSE)?;
+OPERATOR -> (PLUS|MINUS|MULTI|DIV);
+
+
+
+/* Sample code:
+
+
+import System;
+import MyCode from "MyCode.dll";
+
+let x = new array;
+x[2] = 0;
+
+let y = - - 10 5 2;
+
+let fib = fun (n) -> {
+	let seq = [- n 1];
+	seq[0] = 0;
+	seq[1] = 1;
+       
+};
+
+*/
+
