@@ -73,8 +73,9 @@ using System.Reflection;
                         var il = method.GetILGenerator();
 
                         var locals = new List<CompilerLocalBuilder>();
-
-                        foreach (ParseNode stmt in stmts)
+                        
+                        //Handle all of the code statements
+                        foreach (ParseNode stmt in stmts.FindAll(it => it.Token.Type == TokenType.Statement))
                         {
                             CompilerError[] e = null;
                             HandleStmt(stmt, il, info, ref locals, src, file, doc, ty, out e);
@@ -84,6 +85,8 @@ using System.Reflection;
 
                         }
 
+
+
                         il.Emit(OpCodes.Ret);
 
                         var final = ty.CreateType();
@@ -91,8 +94,9 @@ using System.Reflection;
                         return null;
                     }, ref errors);
 
-                result.Successful = errors.Count == 0;
-                ab.Save(param.OutputFilename);
+                result.Successful = errors.FindAll(it => it != null).Count == 0;
+                if (result.Successful)
+                    ab.Save(new FileInfo(param.OutputFilename).Name);
 
             }
 
@@ -140,7 +144,7 @@ using System.Reflection;
                                 foreach(CompilerError e in ee)    
                                     err.Add(e);
 
-                            local = new CompilerLocalBuilder(name.Text, gen, typ, info);
+                            local = new CompilerLocalBuilder(name.Token.Text, gen, typ, info);
 
                             gen.Emit(OpCodes.Stloc, local.Local);
 
@@ -176,7 +180,7 @@ using System.Reflection;
                                     else
                                     {
                                         //Call the local's 'ToString' method if it has one. Otherwise, fail.
-                                        throw new NotImplementedException();
+                                        gen.Emit(OpCodes.Calli, typ.GetMethod("ToString", new Type[] { }));
                                     }
                                 }
 
@@ -217,7 +221,8 @@ using System.Reflection;
                 case TokenType.IDENTIFIER:
                     {
                         CompilerError ce = null;
-                        bool err = LoadLocal(num1, ref locals, ref gen, src, filename, out ce);
+                        Type t = null;
+                        bool err = LoadLocal(num1, ref locals, ref gen, src, filename, out ce, out t);
 
                         if (!err)
                         {
@@ -257,7 +262,8 @@ using System.Reflection;
                 case TokenType.IDENTIFIER:
                     {
                         CompilerError ce = null;
-                        bool err = LoadLocal(num2, ref locals, ref gen, src, filename, out ce);
+                        Type t = null;
+                        bool err = LoadLocal(num2, ref locals, ref gen, src, filename, out ce, out t);
 
                         if (!err)
                         {
@@ -279,7 +285,7 @@ using System.Reflection;
                     }
             }
 
-            switch (op.Token.Type)
+            switch (op.Nodes[0].Token.Type)
             {
                 case TokenType.PLUS:
                     {
@@ -306,7 +312,7 @@ using System.Reflection;
                         var pos = op.GetLineAndCol(src);
                         errs[0] = new CompilerError()
                         {
-                            Message = "Unsupported operator.",
+                            Message = "Unsupported operator '" + op.Token.Text +"'.",
                             Line = pos.Line,
                             Col = pos.Col,
                             Filename = filename
@@ -318,11 +324,13 @@ using System.Reflection;
 
         }
 
-        private static bool LoadLocal(ParseNode p, ref List<CompilerLocalBuilder> locals, ref ILGenerator gen, string src, string filename, out CompilerError err)
+        private static bool LoadLocal(ParseNode p, ref List<CompilerLocalBuilder> locals, ref ILGenerator gen, string src, string filename, out CompilerError err, out Type ty)
         {
             var pos = p.GetLineAndCol(src);
 
             var lc = locals.Find(it => it.Name == p.Token.Text);
+
+            ty = null;
 
             if (lc == null)
             {
@@ -333,11 +341,14 @@ using System.Reflection;
                     Col = pos.Col,
                     Filename = filename
                 };
+                ty = null;
                 return false;
             }
             else
             {
                 err = null;
+
+                ty = lc.LocalType;
 
                 gen.Emit(OpCodes.Ldloc, lc.Local);
                 return true;
@@ -383,14 +394,27 @@ using System.Reflection;
                                 }
                             case TokenType.IDENTIFIER:
                                 {
-                                    throw new NotImplementedException();
+                                    
                                     if (pn.Nodes.Count > 1)
                                     {
                                         //getting a value from an array.
+                                        throw new NotImplementedException();
                                     }
                                     else
                                     {
-                                        //copying a value from a variable.
+                                        //copying/loading a value from a variable.
+                                        CompilerError e = null;
+                                        Type t = null;
+                                        var res = LoadLocal(inner,ref locals, ref gen, src, filename, out e, out t);
+
+                                        if (res == null)
+                                        {
+                                            ee[ee.Length] = e;
+                                        }
+                                        else
+                                        {
+                                            return t;
+                                        }
                                     }
                                     return null;
                                 }
@@ -410,6 +434,7 @@ using System.Reflection;
                         Type t = HandleMathExpr(pn, ref gen, ref locals, src,filename,out ce);
 
                         ee = ce;
+                        return t;
                         break;
                     }
             }
@@ -454,7 +479,28 @@ using System.Reflection;
                 if (res != null)
                     Errors.AddRange(res);
             }
-            ab.SetEntryPoint(ab.GetType(info.MainClass).GetMethod("Main"), PEFileKinds.ConsoleApplication); //Sets entry point
+
+            MethodInfo point = null;
+
+            try 
+            {
+                point = ab.GetType(info.MainClass).GetMethod("Main");
+            }
+            catch (Exception)
+            {
+                foreach (Type t in ab.GetTypes())
+                {
+                    //Find a type with a suitable method and use it.
+                    var m = t.GetMethod("Main");
+                    if (m != null)
+                    {
+                        point = m;
+                        break;
+                    }
+                }
+            }
+
+            ab.SetEntryPoint(point, PEFileKinds.ConsoleApplication); //Sets entry point
 
             //var finishedtype = TBuilder.CreateType(); //Compile the type
 

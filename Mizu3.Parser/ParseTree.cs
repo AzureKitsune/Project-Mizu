@@ -187,6 +187,9 @@ namespace Mizu3.Parser
                 case TokenType.OutStatement:
                     Value = EvalOutStatement(tree, paramlist);
                     break;
+                case TokenType.PragmaStatement:
+                    Value = EvalPragmaStatement(tree, paramlist);
+                    break;
                 case TokenType.Argument:
                     Value = EvalArgument(tree, paramlist);
                     break;
@@ -264,6 +267,11 @@ namespace Mizu3.Parser
         }
 
         protected virtual object EvalOutStatement(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalPragmaStatement(ParseTree tree, params object[] paramlist)
         {
             throw new NotImplementedException();
         }

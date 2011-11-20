@@ -17,7 +17,7 @@
 <% @TinyPG Namespace="Mizu3.Parser" Language="C#" OutputPath="C:\\Users\\alex\\Documents\\visual studio 2010\\Projects\\Mizu3\\Mizu3.Parser\\" %>
 
 //IDENTIFIER -> @"(?!(uses|var|if|for|handle|while|true|false))[a-zA-Z][a-zA-Z0-9_]*";
-IDENTIFIER -> @"(?!(itr|fun|let|new|import|from))[a-zA-Z][a-zA-Z0-9_]*";
+IDENTIFIER -> @"(?!(itr|fun|let|new|import|from|out|ret))[a-zA-Z][a-zA-Z0-9_]*";
 TYPE -> @"\b[a-zA-Z0-9_]*((\.[a-zA-Z0-9_]*))*\b";
 LET -> @"let";
 ITER -> @"itr";
@@ -51,11 +51,12 @@ NEW -> @"new";
 IMPORT -> @"import";
 FROM -> @"from";
 OUT -> @"out"; //Wrapper for Console.WriteLine
+HASH -> @"\#";
 
 
 
 
-Start -> Statements? EOF;
+Start -> (PragmaStatement)* (Statements)? EOF;
 Statements -> Statement+;
 Statement -> (LetStatement|RetStatement|ReAssignmentStatement|ImportStatement|OutStatement);
 ImportStatement -> IMPORT TYPE (FROM STRING)? SEMICOLON;
@@ -66,6 +67,7 @@ FuncStatement -> FUNC BROPEN (IDENTIFIER+)? BRCLOSE ARROW (Statement | BRCKOPEN 
 TypeFuncDeclartion -> IDENTIFIER IDENTIFIER EQUAL FuncStatement;
 RetStatement -> RETURN (Argument)? SEMICOLON;
 OutStatement -> OUT (Argument)? SEMICOLON;
+PragmaStatement -> HASH IDENTIFIER (EQUAL (IDENTIFIER|NUMBER))? SEMICOLON;
  
 Argument -> (STRING|NUMBER|FLOAT|IDENTIFIER (ArrayIndexExpr)?);
 FuncCall -> TYPE BROPEN ((Argument COMMA?)+)? BRCLOSE;
