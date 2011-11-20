@@ -20,5 +20,18 @@ namespace Mizu3.Compiler
         {
             return typ.BaseType == typeof(ValueType);
         }
+        public static bool IsNamespaceAvailable(string ns)
+        {
+            // -> http://stackoverflow.com/questions/2606322/c-how-to-check-if-string-is-a-namespace
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                if (assembly.GetTypes().Any(type => type.Namespace == ns))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 }

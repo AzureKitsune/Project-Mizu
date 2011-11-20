@@ -12,9 +12,15 @@ namespace Mizu3
         {
             CompilerParameters info = new CompilerParameters();
             info.AssemblyName = "Example";
-            info.MainClass = "Default";
+
+            info.MainClass = "Default"; /* If not found, 
+                                         * the compiler will search for a suitable method in the assembly 
+                                         * and use the first one it finds.
+                                         */
             info.SourceCodeFiles = new string[]{args[0]};
             info.OutputFilename = new System.IO.FileInfo(args[0]).DirectoryName + "/Example.exe";
+            info.IsDebugMode = true;
+
 
             var result = Compiler.Compiler.Compile(info);
             object br = null;

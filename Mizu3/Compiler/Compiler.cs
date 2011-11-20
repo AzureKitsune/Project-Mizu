@@ -167,21 +167,41 @@ using System.Reflection;
                             {
                                 var arg = stmt.Nodes[1];
 
-                                CompilerError[] ee;
+                                CompilerError ee;
 
-                                Type typ = HandleRightSideOfEqual(arg,ref  gen, ref locals, ref ty, src, filename, out ee);
+                                //Type typ = HandleRightSideOfEqual(arg,ref  gen, ref locals, ref ty, src, filename, out ee);
+                                // ^^ above is not needed. We know its gonna be 'Argument' which is either a string, int (number) or float.
 
-                                if (typ != typeof(string))
+                                switch (arg.Nodes[0].Token.Type)
                                 {
-                                    if (TypeResolver.IsValueType(typ))
-                                    {
-                                        gen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToString", new Type[] { typ }));
-                                    }
-                                    else
-                                    {
-                                        //Call the local's 'ToString' method if it has one. Otherwise, fail.
-                                        gen.Emit(OpCodes.Calli, typ.GetMethod("ToString", new Type[] { }));
-                                    }
+                                    case TokenType.IDENTIFIER:
+                                        {
+                                            Type typ = null;
+                                            LoadLocal(arg.Nodes[0], ref locals, ref gen, src, filename, out ee, out typ, true);
+
+
+                                            if (typ != typeof(string))
+                                            {
+                                                if (TypeResolver.IsValueType(typ))
+                                                {
+                                                    gen.Emit(OpCodes.Call, typ.GetMethod("ToString", new Type[] { }));
+                                                    //gen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToString", new Type[] { typ }));
+                                                }
+                                                else
+                                                {
+                                                    //Call the local's 'ToString' method if it has one. Otherwise, fail.
+                                                    gen.Emit(OpCodes.Callvirt, typ.GetMethod("ToString", new Type[] { }));
+                                                }
+                                            }
+                                            break;
+                                        }
+                                    default:
+                                        {
+                                            CompilerError[] e2;
+                                            HandleRightSideOfEqual(arg, ref  gen, ref locals, ref ty, src, filename, out e2);
+                                            break;
+                                        }
+
                                 }
 
                                 gen.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] {typeof(string) }));
@@ -305,7 +325,7 @@ using System.Reflection;
                 case TokenType.DIV:
                     {
                         gen.Emit(OpCodes.Div);
-                        break;
+                        return typeof(float);
                     }
                 default:
                     {
@@ -320,11 +340,11 @@ using System.Reflection;
                         break;
                     }
             }
-            return typeof(float);
+            return typeof(int);
 
         }
 
-        private static bool LoadLocal(ParseNode p, ref List<CompilerLocalBuilder> locals, ref ILGenerator gen, string src, string filename, out CompilerError err, out Type ty)
+        private static bool LoadLocal(ParseNode p, ref List<CompilerLocalBuilder> locals, ref ILGenerator gen, string src, string filename, out CompilerError err, out Type ty, bool ldaddress = false)
         {
             var pos = p.GetLineAndCol(src);
 
@@ -350,7 +370,10 @@ using System.Reflection;
 
                 ty = lc.LocalType;
 
-                gen.Emit(OpCodes.Ldloc, lc.Local);
+                if (ldaddress)
+                    gen.Emit(OpCodes.Ldloca, lc.Local);
+                else
+                    gen.Emit(OpCodes.Ldloc, lc.Local);
                 return true;
             }
         }
