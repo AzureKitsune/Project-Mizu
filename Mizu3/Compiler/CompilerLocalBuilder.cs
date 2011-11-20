@@ -18,11 +18,15 @@ namespace Mizu3.Compiler
     public class CompilerLocalBuilder : IEquatable<LocalBuilder>
     {
         private LocalBuilder local = null;
-        public CompilerLocalBuilder(string name,ILGenerator gen,Type ty,int startoff,int endoff)
+        private string name = null;
+        public CompilerLocalBuilder(string pname,ILGenerator gen,Type ty, CompilerParameters info)
         {
             local = gen.DeclareLocal(ty);
-            local.SetLocalSymInfo(name, startoff, endoff);
-            
+
+            if(info.IsDebugMode)
+                local.SetLocalSymInfo(pname);
+
+            this.name = pname;
         }
 
         #region IEquatable<LocalBuilder> Members
@@ -35,5 +39,10 @@ namespace Mizu3.Compiler
         #endregion
 
         public LocalBuilder Local { get { return local; } }
+
+        public int LocalIndex { get { return local.LocalIndex; } }
+        public Type LocalType { get { return local.LocalType; } }
+
+        public string Name { get { return name; } }
     }
 }

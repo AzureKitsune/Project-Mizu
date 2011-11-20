@@ -50,14 +50,14 @@ RETURN -> @"ret";
 NEW -> @"new";
 IMPORT -> @"import";
 FROM -> @"from";
-OUT -> @"out"; //Wrapper for Console.Write
+OUT -> @"out"; //Wrapper for Console.WriteLine
 
 
 
 
 Start -> Statements? EOF;
 Statements -> Statement+;
-Statement -> (LetStatement|RetStatement|ReAssignmentStatement|ImportStatement);
+Statement -> (LetStatement|RetStatement|ReAssignmentStatement|ImportStatement|OutStatement);
 ImportStatement -> IMPORT TYPE (FROM STRING)? SEMICOLON;
 ReAssignmentStatement -> IDENTIFIER (ArrayIndexExpr)? EQUAL (Argument|FuncStatement) SEMICOLON;
 LetStatement -> LET IDENTIFIER EQUAL (Argument|IterStatement|FuncStatement|ObjectCreatetion|ArrayIndexExpr|MathExpr) SEMICOLON;
@@ -65,6 +65,7 @@ IterStatement -> ITER OPENBR ((NUMBER|FLOAT) COLON (NUMBER|FLOAT|IDENTIFIER)|IDE
 FuncStatement -> FUNC BROPEN (IDENTIFIER+)? BRCLOSE ARROW (Statement | BRCKOPEN Statements BRCKCLOSE);
 TypeFuncDeclartion -> IDENTIFIER IDENTIFIER EQUAL FuncStatement;
 RetStatement -> RETURN (Argument)? SEMICOLON;
+OutStatement -> OUT (Argument)? SEMICOLON;
  
 Argument -> (STRING|NUMBER|FLOAT|IDENTIFIER (ArrayIndexExpr)?);
 FuncCall -> TYPE BROPEN ((Argument COMMA?)+)? BRCLOSE;

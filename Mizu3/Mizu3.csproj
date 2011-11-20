@@ -63,6 +63,7 @@
     <Compile Include="Compiler\CompilerError.cs" />
     <Compile Include="Compiler\CompilerLocalBuilder.cs" />
     <Compile Include="Compiler\CompilerParameters.cs" />
+    <Compile Include="Compiler\TypeResolver.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
