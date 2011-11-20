@@ -2,3 +2,4 @@
 let y = 6;
 let z = - + x y 2;
 out z;
+out 3.14;

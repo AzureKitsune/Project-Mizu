@@ -184,7 +184,7 @@ using System.Reflection;
                                             {
                                                 if (TypeResolver.IsValueType(typ))
                                                 {
-                                                    gen.Emit(OpCodes.Call, typ.GetMethod("ToString", new Type[] { }));
+                                                    gen.Emit(OpCodes.Call, typ.GetMethod("ToString", new Type[] { })); //Value types can have their own ToString method called.
                                                     //gen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToString", new Type[] { typ }));
                                                 }
                                                 else
@@ -198,7 +198,21 @@ using System.Reflection;
                                     default:
                                         {
                                             CompilerError[] e2;
-                                            HandleRightSideOfEqual(arg, ref  gen, ref locals, ref ty, src, filename, out e2);
+                                            Type typ = HandleRightSideOfEqual(arg, ref  gen, ref locals, ref ty, src, filename, out e2);
+
+                                            if (typ != typeof(string))
+                                            {
+                                                if (TypeResolver.IsValueType(typ))
+                                                {
+                                                   //its a non-variable value type, we can call convert.
+                                                    gen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToString", new Type[] { typ}));
+                                                }
+                                                else
+                                                {
+                                                    //Handle constants that not variables nor value types.
+                                                    throw new NotImplementedException();
+                                                }
+                                            }
                                             break;
                                         }
 
@@ -234,8 +248,8 @@ using System.Reflection;
                     }
                 case TokenType.FLOAT:
                     {
-                        var flo = float.Parse(num1.Token.Text);
-                        gen.Emit(OpCodes.Ldc_R4, flo);
+                        var flo = double.Parse(num1.Token.Text);
+                        gen.Emit(OpCodes.Ldc_R8, flo);
                         break;
                     }
                 case TokenType.IDENTIFIER:
@@ -275,8 +289,8 @@ using System.Reflection;
                     }
                 case TokenType.FLOAT:
                     {
-                        var flo = float.Parse(num2.Token.Text);
-                        gen.Emit(OpCodes.Ldc_R4, flo);
+                        var flo = double.Parse(num2.Token.Text);
+                        gen.Emit(OpCodes.Ldc_R8, flo);
                         break;
                     }
                 case TokenType.IDENTIFIER:
@@ -325,7 +339,7 @@ using System.Reflection;
                 case TokenType.DIV:
                     {
                         gen.Emit(OpCodes.Div);
-                        return typeof(float);
+                        return typeof(double);
                     }
                 default:
                     {
@@ -409,10 +423,10 @@ using System.Reflection;
                                 }
                             case TokenType.FLOAT:
                                 {
-                                    var flo = float.Parse(inner.Token.Text);
-                                    gen.Emit(OpCodes.Ldc_R4, flo);
+                                    var flo = double.Parse(inner.Token.Text);
+                                    gen.Emit(OpCodes.Ldc_R8, flo);
 
-                                    return  typeof(float);
+                                    return  typeof(double);
                                     break;
                                 }
                             case TokenType.IDENTIFIER:
