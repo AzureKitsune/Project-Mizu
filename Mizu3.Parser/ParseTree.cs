@@ -190,6 +190,21 @@ namespace Mizu3.Parser
                 case TokenType.PragmaStatement:
                     Value = EvalPragmaStatement(tree, paramlist);
                     break;
+                case TokenType.TryCatchStatement:
+                    Value = EvalTryCatchStatement(tree, paramlist);
+                    break;
+                case TokenType.FuncCallStatement:
+                    Value = EvalFuncCallStatement(tree, paramlist);
+                    break;
+                case TokenType.WhileStatement:
+                    Value = EvalWhileStatement(tree, paramlist);
+                    break;
+                case TokenType.Expr:
+                    Value = EvalExpr(tree, paramlist);
+                    break;
+                case TokenType.Parameter:
+                    Value = EvalParameter(tree, paramlist);
+                    break;
                 case TokenType.Argument:
                     Value = EvalArgument(tree, paramlist);
                     break;
@@ -201,6 +216,9 @@ namespace Mizu3.Parser
                     break;
                 case TokenType.ObjectCreatetion:
                     Value = EvalObjectCreatetion(tree, paramlist);
+                    break;
+                case TokenType.Boolean:
+                    Value = EvalBoolean(tree, paramlist);
                     break;
                 case TokenType.MathExpr:
                     Value = EvalMathExpr(tree, paramlist);
@@ -276,6 +294,31 @@ namespace Mizu3.Parser
             throw new NotImplementedException();
         }
 
+        protected virtual object EvalTryCatchStatement(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalFuncCallStatement(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalWhileStatement(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalExpr(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalParameter(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
         protected virtual object EvalArgument(ParseTree tree, params object[] paramlist)
         {
             throw new NotImplementedException();
@@ -292,6 +335,11 @@ namespace Mizu3.Parser
         }
 
         protected virtual object EvalObjectCreatetion(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalBoolean(ParseTree tree, params object[] paramlist)
         {
             throw new NotImplementedException();
         }

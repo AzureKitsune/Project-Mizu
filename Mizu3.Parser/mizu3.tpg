@@ -17,8 +17,8 @@
 <% @TinyPG Namespace="Mizu3.Parser" Language="C#" OutputPath="C:\\Users\\alex\\Documents\\visual studio 2010\\Projects\\Mizu3\\Mizu3.Parser\\" %>
 
 //IDENTIFIER -> @"(?!(uses|var|if|for|handle|while|true|false))[a-zA-Z][a-zA-Z0-9_]*";
-IDENTIFIER -> @"(?!(itr|fun|let|new|import|from|out|ret))[a-zA-Z][a-zA-Z0-9_]*";
-TYPE -> @"\b[a-zA-Z0-9_]*((\.[a-zA-Z0-9_]*))*\b";
+IDENTIFIER -> @"(?!(itr|fun|let|new|import|from|out|ret|try|cat(ch)?|while))[a-zA-Z][a-zA-Z0-9_]*";
+TYPE -> @"(?!(itr|fun|let|new|import|from|out|ret|try|cat(ch)?|while))\b[a-zA-Z0-9_]*((\.[a-zA-Z0-9_]*))*\b";
 LET -> @"let";
 ITER -> @"itr";
 [Color(255, 0, 0)] STRING -> @"\"".+?\""";
@@ -52,27 +52,43 @@ IMPORT -> @"import";
 FROM -> @"from";
 OUT -> @"out"; //Wrapper for Console.WriteLine
 HASH -> @"\#";
+TRY -> @"try";
+CATCH -> @"cat(ch)?";
+WHILE -> @"while";
+GT -> @">";
+LT -> @"<";
+GTE -> @">=";
+LTE -> @"=<";
+NOTEQUAL -> @"!=";
+TRUE -> @"true";
+FALSE -> @"false";
 
 
 
 
 Start -> (PragmaStatement)* (Statements)? EOF;
 Statements -> Statement+;
-Statement -> (LetStatement|RetStatement|ReAssignmentStatement|ImportStatement|OutStatement);
+Statement -> (LetStatement|ImportStatement|OutStatement|TryCatchStatement|RetStatement|WhileStatement|FuncCallStatement|ReAssignmentStatement);
 ImportStatement -> IMPORT TYPE (FROM STRING)? SEMICOLON;
 ReAssignmentStatement -> IDENTIFIER (ArrayIndexExpr)? EQUAL (Argument|FuncStatement) SEMICOLON;
 LetStatement -> LET IDENTIFIER EQUAL (Argument|IterStatement|FuncStatement|ObjectCreatetion|ArrayIndexExpr|MathExpr) SEMICOLON;
 IterStatement -> ITER OPENBR ((NUMBER|FLOAT) COLON (NUMBER|FLOAT|IDENTIFIER)|IDENTIFIER) CLOSEBR ARROW (FuncCall|BRCKOPEN Statements BRCKCLOSE);
-FuncStatement -> FUNC BROPEN (IDENTIFIER+)? BRCLOSE ARROW (Statement | BRCKOPEN Statements BRCKCLOSE);
+FuncStatement -> FUNC BROPEN (Parameter (COMMA Parameter)*)? BRCLOSE ARROW (Statement | BRCKOPEN Statements BRCKCLOSE);
 TypeFuncDeclartion -> IDENTIFIER IDENTIFIER EQUAL FuncStatement;
 RetStatement -> RETURN (Argument)? SEMICOLON;
 OutStatement -> OUT (Argument)? SEMICOLON;
 PragmaStatement -> HASH IDENTIFIER (EQUAL (IDENTIFIER|NUMBER))? SEMICOLON;
- 
+TryCatchStatement -> TRY BRCKOPEN Statements BRCKCLOSE CATCH BROPEN Parameter BRCLOSE BRCKOPEN Statements BRCKCLOSE;
+FuncCallStatement -> FuncCall SEMICOLON;
+WhileStatement -> WHILE BROPEN Expr BRCLOSE BRCKOPEN Statements BRCKCLOSE;
+
+Expr -> Argument (GT|LT|LTE|GTE|EQUAL|NOTEQUAL) Argument;
+Parameter -> (TYPE COLON)? IDENTIFIER; 
 Argument -> (STRING|NUMBER|FLOAT|IDENTIFIER (ArrayIndexExpr)?);
 FuncCall -> TYPE BROPEN ((Argument COMMA?)+)? BRCLOSE;
 ArrayIndexExpr -> OPENBR (NUMBER|IDENTIFIER|MathExpr) CLOSEBR;
 ObjectCreatetion -> NEW TYPE;
+Boolean -> (TRUE|FALSE);
 MathExpr -> (BROPEN)? OPERATOR (NUMBER|MathExpr|IDENTIFIER) (NUMBER|MathExpr|IDENTIFIER) (BRCLOSE)?;
 OPERATOR -> (PLUS|MINUS|MULTI|DIV);
 

@@ -37,11 +37,11 @@ namespace Mizu3.Parser
             SkipList.Add(TokenType.NEWLINE);
             SkipList.Add(TokenType.COMMENTBLOCK);
 
-            regex = new Regex(@"(?!(itr|fun|let|new|import|from|out|ret))[a-zA-Z][a-zA-Z0-9_]*", RegexOptions.Compiled);
+            regex = new Regex(@"(?!(itr|fun|let|new|import|from|out|ret|try|cat(ch)?|while))[a-zA-Z][a-zA-Z0-9_]*", RegexOptions.Compiled);
             Patterns.Add(TokenType.IDENTIFIER, regex);
             Tokens.Add(TokenType.IDENTIFIER);
 
-            regex = new Regex(@"\b[a-zA-Z0-9_]*((\.[a-zA-Z0-9_]*))*\b", RegexOptions.Compiled);
+            regex = new Regex(@"(?!(itr|fun|let|new|import|from|out|ret|try|cat(ch)?|while))\b[a-zA-Z0-9_]*((\.[a-zA-Z0-9_]*))*\b", RegexOptions.Compiled);
             Patterns.Add(TokenType.TYPE, regex);
             Tokens.Add(TokenType.TYPE);
 
@@ -177,6 +177,46 @@ namespace Mizu3.Parser
             Patterns.Add(TokenType.HASH, regex);
             Tokens.Add(TokenType.HASH);
 
+            regex = new Regex(@"try", RegexOptions.Compiled);
+            Patterns.Add(TokenType.TRY, regex);
+            Tokens.Add(TokenType.TRY);
+
+            regex = new Regex(@"cat(ch)?", RegexOptions.Compiled);
+            Patterns.Add(TokenType.CATCH, regex);
+            Tokens.Add(TokenType.CATCH);
+
+            regex = new Regex(@"while", RegexOptions.Compiled);
+            Patterns.Add(TokenType.WHILE, regex);
+            Tokens.Add(TokenType.WHILE);
+
+            regex = new Regex(@">", RegexOptions.Compiled);
+            Patterns.Add(TokenType.GT, regex);
+            Tokens.Add(TokenType.GT);
+
+            regex = new Regex(@"<", RegexOptions.Compiled);
+            Patterns.Add(TokenType.LT, regex);
+            Tokens.Add(TokenType.LT);
+
+            regex = new Regex(@">=", RegexOptions.Compiled);
+            Patterns.Add(TokenType.GTE, regex);
+            Tokens.Add(TokenType.GTE);
+
+            regex = new Regex(@"=<", RegexOptions.Compiled);
+            Patterns.Add(TokenType.LTE, regex);
+            Tokens.Add(TokenType.LTE);
+
+            regex = new Regex(@"!=", RegexOptions.Compiled);
+            Patterns.Add(TokenType.NOTEQUAL, regex);
+            Tokens.Add(TokenType.NOTEQUAL);
+
+            regex = new Regex(@"true", RegexOptions.Compiled);
+            Patterns.Add(TokenType.TRUE, regex);
+            Tokens.Add(TokenType.TRUE);
+
+            regex = new Regex(@"false", RegexOptions.Compiled);
+            Patterns.Add(TokenType.FALSE, regex);
+            Tokens.Add(TokenType.FALSE);
+
 
         }
 
@@ -309,49 +349,65 @@ namespace Mizu3.Parser
             RetStatement= 11,
             OutStatement= 12,
             PragmaStatement= 13,
-            Argument= 14,
-            FuncCall= 15,
-            ArrayIndexExpr= 16,
-            ObjectCreatetion= 17,
-            MathExpr= 18,
-            OPERATOR= 19,
+            TryCatchStatement= 14,
+            FuncCallStatement= 15,
+            WhileStatement= 16,
+            Expr    = 17,
+            Parameter= 18,
+            Argument= 19,
+            FuncCall= 20,
+            ArrayIndexExpr= 21,
+            ObjectCreatetion= 22,
+            Boolean = 23,
+            MathExpr= 24,
+            OPERATOR= 25,
 
             //Terminal tokens:
-            IDENTIFIER= 20,
-            TYPE    = 21,
-            LET     = 22,
-            ITER    = 23,
-            STRING  = 24,
-            EMPTYLINE= 25,
-            WHITESPACE= 26,
-            TAB     = 27,
-            NEWLINE = 28,
-            COMMENTBLOCK= 29,
-            EOF     = 30,
-            EQUAL   = 31,
-            PLUS    = 32,
-            MINUS   = 33,
-            MULTI   = 34,
-            DIV     = 35,
-            SEMICOLON= 36,
-            NUMBER  = 37,
-            FLOAT   = 38,
-            ARROW   = 39,
-            BRCKOPEN= 40,
-            BRCKCLOSE= 41,
-            BROPEN  = 42,
-            BRCLOSE = 43,
-            COMMA   = 44,
-            FUNC    = 45,
-            COLON   = 46,
-            OPENBR  = 47,
-            CLOSEBR = 48,
-            RETURN  = 49,
-            NEW     = 50,
-            IMPORT  = 51,
-            FROM    = 52,
-            OUT     = 53,
-            HASH    = 54
+            IDENTIFIER= 26,
+            TYPE    = 27,
+            LET     = 28,
+            ITER    = 29,
+            STRING  = 30,
+            EMPTYLINE= 31,
+            WHITESPACE= 32,
+            TAB     = 33,
+            NEWLINE = 34,
+            COMMENTBLOCK= 35,
+            EOF     = 36,
+            EQUAL   = 37,
+            PLUS    = 38,
+            MINUS   = 39,
+            MULTI   = 40,
+            DIV     = 41,
+            SEMICOLON= 42,
+            NUMBER  = 43,
+            FLOAT   = 44,
+            ARROW   = 45,
+            BRCKOPEN= 46,
+            BRCKCLOSE= 47,
+            BROPEN  = 48,
+            BRCLOSE = 49,
+            COMMA   = 50,
+            FUNC    = 51,
+            COLON   = 52,
+            OPENBR  = 53,
+            CLOSEBR = 54,
+            RETURN  = 55,
+            NEW     = 56,
+            IMPORT  = 57,
+            FROM    = 58,
+            OUT     = 59,
+            HASH    = 60,
+            TRY     = 61,
+            CATCH   = 62,
+            WHILE   = 63,
+            GT      = 64,
+            LT      = 65,
+            GTE     = 66,
+            LTE     = 67,
+            NOTEQUAL= 68,
+            TRUE    = 69,
+            FALSE   = 70
     }
 
     public class Token
