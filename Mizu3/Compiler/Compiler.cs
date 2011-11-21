@@ -141,7 +141,7 @@ using System.Reflection;
                             typ = HandleRightSideOfEqual(data, ref gen, ref locals, ref ty, src, filename, out ee);
 
                             if (ee != null)
-                                foreach(CompilerError e in ee)    
+                                foreach (CompilerError e in ee)
                                     err.Add(e);
 
                             local = new CompilerLocalBuilder(name.Token.Text, gen, typ, info);
@@ -204,8 +204,8 @@ using System.Reflection;
                                             {
                                                 if (TypeResolver.IsValueType(typ))
                                                 {
-                                                   //its a non-variable value type, we can call convert.
-                                                    gen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToString", new Type[] { typ}));
+                                                    //its a non-variable value type, we can call convert.
+                                                    gen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToString", new Type[] { typ }));
                                                 }
                                                 else
                                                 {
@@ -218,10 +218,26 @@ using System.Reflection;
 
                                 }
 
-                                gen.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] {typeof(string) }));
+                                gen.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new Type[] { typeof(string) }));
 
                             }
                             #endregion
+                            break;
+                        }
+                    case TokenType.ReAssignmentStatement:
+                        {
+                            //Assignment of a value in an array.
+                            var arryname = stmt.Nodes[0];
+                            var num = stmt.Nodes[1].Nodes[1];
+
+                            CompilerError e;
+                            CompilerError[] es;
+                            Type t;
+                            LoadLocal(arryname, ref locals, ref gen, src, filename, out e, out t, true);
+                            gen.Emit(OpCodes.Ldc_I4, int.Parse(num.Token.Text));
+                            HandleRightSideOfEqual(stmt.Nodes[3],ref gen, ref locals,ref ty, src, filename,out es);
+                            gen.Emit(OpCodes.Stelem_I);
+                            gen.Emit(OpCodes.Stloc, locals.Find(it => it.Name == arryname.Token.Text).Local);
                             break;
                         }
                 }
@@ -461,7 +477,12 @@ using System.Reflection;
                 case TokenType.ArrayIndexExpr:
                     {
                         //Creating an array.
-                        ParseNode inner = pn.Nodes[0];
+                        //Single dimension arrays only
+                        ParseNode num = pn.Nodes[1];
+                        gen.Emit(OpCodes.Ldc_I4, int.Parse(num.Token.Text));
+                        gen.Emit(OpCodes.Newarr, typeof(object[]));
+                        //
+                        return typeof(object[]);
                         break;
                     }
                 case TokenType.MathExpr:
