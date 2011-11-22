@@ -10,9 +10,9 @@ namespace Mizu3.Compiler
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
-using System.Reflection.Emit;
-using System.Diagnostics;
-using System.Reflection;
+    using System.Reflection.Emit;
+    using System.Diagnostics;
+    using System.Reflection;
     using System.Diagnostics.SymbolStore;
     using Mizu3.Parser;
     using System.IO;
@@ -144,7 +144,7 @@ using System.Reflection;
                                 foreach (CompilerError e in ee)
                                     err.Add(e);
 
-                            local = new CompilerLocalBuilder(name.Token.Text, gen, typ, info);
+                            local = new CompilerLocalBuilder(name.Token.Text, gen, typ, info, src,name);
 
                             gen.Emit(OpCodes.Stloc, local.Local);
 
@@ -177,20 +177,35 @@ using System.Reflection;
                                     case TokenType.IDENTIFIER:
                                         {
                                             Type typ = null;
-                                            LoadLocal(arg.Nodes[0], ref locals, ref gen, src, filename, out ee, out typ, true);
+                                            
 
-
-                                            if (typ != typeof(string))
+                                            if (arg.Nodes.Count > 1)
                                             {
-                                                if (TypeResolver.IsValueType(typ))
+                                                //A variable array.
+                                                LoadLocal(arg.Nodes[0], ref locals, ref gen, src, filename, out ee, out typ, false);
+
+                                                var num = arg.Nodes[1].Nodes.Find(it => it.Token.Type == TokenType.NUMBER);
+                                                gen.Emit(OpCodes.Ldc_I4, int.Parse(num.Token.Text));
+                                                gen.Emit(OpCodes.Ldelem,typeof(object));
+                                                typ = typeof(object);
+                                                gen.Emit(OpCodes.Callvirt, typ.GetMethod("ToString", new Type[] { }));
+                                            }
+                                            else
+                                            {
+                                                //Just a variable.
+                                                LoadLocal(arg.Nodes[0], ref locals, ref gen, src, filename, out ee, out typ, true);
+                                                if (typ != typeof(string))
                                                 {
-                                                    gen.Emit(OpCodes.Call, typ.GetMethod("ToString", new Type[] { })); //Value types can have their own ToString method called.
-                                                    //gen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToString", new Type[] { typ }));
-                                                }
-                                                else
-                                                {
-                                                    //Call the local's 'ToString' method if it has one. Otherwise, fail.
-                                                    gen.Emit(OpCodes.Callvirt, typ.GetMethod("ToString", new Type[] { }));
+                                                    if (TypeResolver.IsValueType(typ))
+                                                    {
+                                                        gen.Emit(OpCodes.Call, typ.GetMethod("ToString", new Type[] { })); //Value types can have their own ToString method called.
+                                                        //gen.Emit(OpCodes.Call, typeof(Convert).GetMethod("ToString", new Type[] { typ }));
+                                                    }
+                                                    else
+                                                    {
+                                                        //Call the local's 'ToString' method if it has one. Otherwise, fail.
+                                                        gen.Emit(OpCodes.Callvirt, typ.GetMethod("ToString", new Type[] { }));
+                                                    }
                                                 }
                                             }
                                             break;
@@ -224,7 +239,7 @@ using System.Reflection;
                             #endregion
                             break;
                         }
-                    case TokenType.ReAssignmentStatement:
+                    case TokenType.ArrayAssignmentStatement:
                         {
                             //Assignment of a value in an array.
                             var arryname = stmt.Nodes[0];
@@ -233,11 +248,13 @@ using System.Reflection;
                             CompilerError e;
                             CompilerError[] es;
                             Type t;
-                            LoadLocal(arryname, ref locals, ref gen, src, filename, out e, out t, true);
+                            LoadLocal(arryname, ref locals, ref gen, src, filename, out e, out t, false);
                             gen.Emit(OpCodes.Ldc_I4, int.Parse(num.Token.Text));
-                            HandleRightSideOfEqual(stmt.Nodes[3],ref gen, ref locals,ref ty, src, filename,out es);
-                            gen.Emit(OpCodes.Stelem_I);
-                            gen.Emit(OpCodes.Stloc, locals.Find(it => it.Name == arryname.Token.Text).Local);
+                            t = HandleRightSideOfEqual(stmt.Nodes[3],ref gen, ref locals,ref ty, src, filename,out es);
+                            if (TypeResolver.IsValueType(t))
+                                gen.Emit(OpCodes.Box, t);
+                            gen.Emit(OpCodes.Stelem,typeof(object));
+                            //gen.Emit(OpCodes.Stloc, locals.Find(it => it.Name == arryname.Token.Text).Local);
                             break;
                         }
                 }
@@ -427,7 +444,6 @@ using System.Reflection;
                                     gen.Emit(OpCodes.Ldstr, str); //pushes the string onto the stack.
 
                                     return typeof(string);
-                                    break;
                                 }
                             case TokenType.NUMBER:
                                 {
@@ -435,7 +451,6 @@ using System.Reflection;
                                     gen.Emit(OpCodes.Ldc_I4, num);
 
                                     return  typeof(int);
-                                    break;
                                 }
                             case TokenType.FLOAT:
                                 {
@@ -443,7 +458,6 @@ using System.Reflection;
                                     gen.Emit(OpCodes.Ldc_R8, flo);
 
                                     return  typeof(double);
-                                    break;
                                 }
                             case TokenType.IDENTIFIER:
                                 {
@@ -460,7 +474,7 @@ using System.Reflection;
                                         Type t = null;
                                         var res = LoadLocal(inner,ref locals, ref gen, src, filename, out e, out t);
 
-                                        if (res == null)
+                                        if (res == false)
                                         {
                                             ee[ee.Length] = e;
                                         }
@@ -480,10 +494,9 @@ using System.Reflection;
                         //Single dimension arrays only
                         ParseNode num = pn.Nodes[1];
                         gen.Emit(OpCodes.Ldc_I4, int.Parse(num.Token.Text));
-                        gen.Emit(OpCodes.Newarr, typeof(object[]));
+                        gen.Emit(OpCodes.Newarr, typeof(object));
                         //
                         return typeof(object[]);
-                        break;
                     }
                 case TokenType.MathExpr:
                     {
@@ -493,7 +506,6 @@ using System.Reflection;
 
                         ee = ce;
                         return t;
-                        break;
                     }
             }
             return typeof(object);

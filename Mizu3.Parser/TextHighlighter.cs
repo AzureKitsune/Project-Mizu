@@ -419,17 +419,23 @@ namespace Mizu3.Parser
                     case TokenType.STRING:
                         sb.Append(@"{{\cf1 ");
                         break;
-                    case TokenType.NUMBER:
+                    case TokenType.COMMENTBLOCK:
                         sb.Append(@"{{\cf2 ");
                         break;
-                    case TokenType.FLOAT:
+                    case TokenType.COMMENTLINE:
                         sb.Append(@"{{\cf3 ");
                         break;
-                    case TokenType.BROPEN:
+                    case TokenType.NUMBER:
                         sb.Append(@"{{\cf4 ");
                         break;
-                    case TokenType.BRCLOSE:
+                    case TokenType.FLOAT:
                         sb.Append(@"{{\cf5 ");
+                        break;
+                    case TokenType.BROPEN:
+                        sb.Append(@"{{\cf6 ");
+                        break;
+                    case TokenType.BRCLOSE:
+                        sb.Append(@"{{\cf7 ");
                         break;
 
                     default:
@@ -449,7 +455,7 @@ namespace Mizu3.Parser
         // define the color palette to be used here
         private void AddRtfHeader(StringBuilder sb)
         {
-            sb.Insert(0, @"{\rtf1\ansi\deff0{\fonttbl{\f0\fnil\fcharset0 Consolas;}}{\colortbl;\red255\green0\blue0;\red255\green0\blue0;\red255\green0\blue0;\red0\green0\blue255;\red0\green0\blue255;}\viewkind4\uc1\pard\lang1033\f0\fs20");
+            sb.Insert(0, @"{\rtf1\ansi\deff0{\fonttbl{\f0\fnil\fcharset0 Consolas;}}{\colortbl;\red255\green0\blue0;\red0\green255\blue0;\red0\green255\blue0;\red255\green0\blue0;\red255\green0\blue0;\red0\green0\blue255;\red0\green0\blue255;}\viewkind4\uc1\pard\lang1033\f0\fs20");
         }
 
         private void AddRtfEnd(StringBuilder sb)

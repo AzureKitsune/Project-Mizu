@@ -5,4 +5,14 @@ out z;
 out 3.14;
 
 let myArray = [5];
-myArray[0] = 1;
+myArray[0] = 20;
+myArray[1] = 1;
+myArray[2] = 7;
+myArray[3] = 4;
+myArray[4] = 2;
+
+out myArray[0];
+out myArray[1];
+out myArray[2];
+out myArray[3];
+out myArray[4];

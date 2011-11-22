@@ -129,7 +129,7 @@ namespace Mizu3.Parser
                     ParseFuncCallStatement(node);
                     break;
                 case TokenType.IDENTIFIER:
-                    ParseReAssignmentStatement(node);
+                    ParseArrayAssignmentStatement(node);
                     break;
                 default:
                     tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found.", 0x0002, 0, tok.StartPos, tok.StartPos, tok.Length));
@@ -196,11 +196,11 @@ namespace Mizu3.Parser
             parent.Token.UpdateRange(node.Token);
         }
 
-        private void ParseReAssignmentStatement(ParseNode parent)
+        private void ParseArrayAssignmentStatement(ParseNode parent)
         {
             Token tok;
             ParseNode n;
-            ParseNode node = parent.CreateNode(scanner.GetToken(TokenType.ReAssignmentStatement), "ReAssignmentStatement");
+            ParseNode node = parent.CreateNode(scanner.GetToken(TokenType.ArrayAssignmentStatement), "ArrayAssignmentStatement");
             parent.Nodes.Add(node);
 
 
@@ -228,11 +228,13 @@ namespace Mizu3.Parser
             node.Nodes.Add(n);
 
             
-            tok = scanner.LookAhead(TokenType.STRING, TokenType.NUMBER, TokenType.FLOAT, TokenType.IDENTIFIER, TokenType.FUNC);
+            tok = scanner.LookAhead(TokenType.STRING, TokenType.NUMBER, TokenType.TRUE, TokenType.FALSE, TokenType.FLOAT, TokenType.IDENTIFIER, TokenType.FUNC);
             switch (tok.Type)
             {
                 case TokenType.STRING:
                 case TokenType.NUMBER:
+                case TokenType.TRUE:
+                case TokenType.FALSE:
                 case TokenType.FLOAT:
                 case TokenType.IDENTIFIER:
                     ParseArgument(node);
@@ -289,11 +291,13 @@ namespace Mizu3.Parser
             node.Nodes.Add(n);
 
             
-            tok = scanner.LookAhead(TokenType.STRING, TokenType.NUMBER, TokenType.FLOAT, TokenType.IDENTIFIER, TokenType.ITER, TokenType.FUNC, TokenType.NEW, TokenType.OPENBR, TokenType.BROPEN, TokenType.PLUS, TokenType.MINUS, TokenType.MULTI, TokenType.DIV);
+            tok = scanner.LookAhead(TokenType.STRING, TokenType.NUMBER, TokenType.TRUE, TokenType.FALSE, TokenType.FLOAT, TokenType.IDENTIFIER, TokenType.ITER, TokenType.FUNC, TokenType.NEW, TokenType.OPENBR, TokenType.BROPEN, TokenType.PLUS, TokenType.MINUS, TokenType.MULTI, TokenType.DIV);
             switch (tok.Type)
             {
                 case TokenType.STRING:
                 case TokenType.NUMBER:
+                case TokenType.TRUE:
+                case TokenType.FALSE:
                 case TokenType.FLOAT:
                 case TokenType.IDENTIFIER:
                     ParseArgument(node);
@@ -661,9 +665,11 @@ namespace Mizu3.Parser
             node.Nodes.Add(n);
 
             
-            tok = scanner.LookAhead(TokenType.STRING, TokenType.NUMBER, TokenType.FLOAT, TokenType.IDENTIFIER);
+            tok = scanner.LookAhead(TokenType.STRING, TokenType.NUMBER, TokenType.TRUE, TokenType.FALSE, TokenType.FLOAT, TokenType.IDENTIFIER);
             if (tok.Type == TokenType.STRING
                 || tok.Type == TokenType.NUMBER
+                || tok.Type == TokenType.TRUE
+                || tok.Type == TokenType.FALSE
                 || tok.Type == TokenType.FLOAT
                 || tok.Type == TokenType.IDENTIFIER)
             {
@@ -698,9 +704,11 @@ namespace Mizu3.Parser
             node.Nodes.Add(n);
 
             
-            tok = scanner.LookAhead(TokenType.STRING, TokenType.NUMBER, TokenType.FLOAT, TokenType.IDENTIFIER);
+            tok = scanner.LookAhead(TokenType.STRING, TokenType.NUMBER, TokenType.TRUE, TokenType.FALSE, TokenType.FLOAT, TokenType.IDENTIFIER);
             if (tok.Type == TokenType.STRING
                 || tok.Type == TokenType.NUMBER
+                || tok.Type == TokenType.TRUE
+                || tok.Type == TokenType.FALSE
                 || tok.Type == TokenType.FLOAT
                 || tok.Type == TokenType.IDENTIFIER)
             {
@@ -817,7 +825,18 @@ namespace Mizu3.Parser
             node.Nodes.Add(n);
 
             
-            ParseStatements(node);
+            tok = scanner.LookAhead(TokenType.LET, TokenType.IMPORT, TokenType.OUT, TokenType.TRY, TokenType.RETURN, TokenType.WHILE, TokenType.TYPE, TokenType.IDENTIFIER);
+            if (tok.Type == TokenType.LET
+                || tok.Type == TokenType.IMPORT
+                || tok.Type == TokenType.OUT
+                || tok.Type == TokenType.TRY
+                || tok.Type == TokenType.RETURN
+                || tok.Type == TokenType.WHILE
+                || tok.Type == TokenType.TYPE
+                || tok.Type == TokenType.IDENTIFIER)
+            {
+                ParseStatements(node);
+            }
 
             
             tok = scanner.Scan(TokenType.BRCKCLOSE);
@@ -863,7 +882,18 @@ namespace Mizu3.Parser
             node.Nodes.Add(n);
 
             
-            ParseStatements(node);
+            tok = scanner.LookAhead(TokenType.LET, TokenType.IMPORT, TokenType.OUT, TokenType.TRY, TokenType.RETURN, TokenType.WHILE, TokenType.TYPE, TokenType.IDENTIFIER);
+            if (tok.Type == TokenType.LET
+                || tok.Type == TokenType.IMPORT
+                || tok.Type == TokenType.OUT
+                || tok.Type == TokenType.TRY
+                || tok.Type == TokenType.RETURN
+                || tok.Type == TokenType.WHILE
+                || tok.Type == TokenType.TYPE
+                || tok.Type == TokenType.IDENTIFIER)
+            {
+                ParseStatements(node);
+            }
 
             
             tok = scanner.Scan(TokenType.BRCKCLOSE);
@@ -942,7 +972,18 @@ namespace Mizu3.Parser
             node.Nodes.Add(n);
 
             
-            ParseStatements(node);
+            tok = scanner.LookAhead(TokenType.LET, TokenType.IMPORT, TokenType.OUT, TokenType.TRY, TokenType.RETURN, TokenType.WHILE, TokenType.TYPE, TokenType.IDENTIFIER);
+            if (tok.Type == TokenType.LET
+                || tok.Type == TokenType.IMPORT
+                || tok.Type == TokenType.OUT
+                || tok.Type == TokenType.TRY
+                || tok.Type == TokenType.RETURN
+                || tok.Type == TokenType.WHILE
+                || tok.Type == TokenType.TYPE
+                || tok.Type == TokenType.IDENTIFIER)
+            {
+                ParseStatements(node);
+            }
 
             
             tok = scanner.Scan(TokenType.BRCKCLOSE);
@@ -1077,7 +1118,7 @@ namespace Mizu3.Parser
             ParseNode node = parent.CreateNode(scanner.GetToken(TokenType.Argument), "Argument");
             parent.Nodes.Add(node);
 
-            tok = scanner.LookAhead(TokenType.STRING, TokenType.NUMBER, TokenType.FLOAT, TokenType.IDENTIFIER);
+            tok = scanner.LookAhead(TokenType.STRING, TokenType.NUMBER, TokenType.TRUE, TokenType.FALSE, TokenType.FLOAT, TokenType.IDENTIFIER);
             switch (tok.Type)
             {
                 case TokenType.STRING:
@@ -1095,6 +1136,10 @@ namespace Mizu3.Parser
                     n = node.CreateNode(tok, tok.ToString() );
                     node.Token.UpdateRange(tok);
                     node.Nodes.Add(n);
+                    break;
+                case TokenType.TRUE:
+                case TokenType.FALSE:
+                    ParseBoolean(node);
                     break;
                 case TokenType.FLOAT:
                     tok = scanner.Scan(TokenType.FLOAT);
@@ -1154,9 +1199,11 @@ namespace Mizu3.Parser
             node.Nodes.Add(n);
 
             
-            tok = scanner.LookAhead(TokenType.STRING, TokenType.NUMBER, TokenType.FLOAT, TokenType.IDENTIFIER);
+            tok = scanner.LookAhead(TokenType.STRING, TokenType.NUMBER, TokenType.TRUE, TokenType.FALSE, TokenType.FLOAT, TokenType.IDENTIFIER);
             if (tok.Type == TokenType.STRING
                 || tok.Type == TokenType.NUMBER
+                || tok.Type == TokenType.TRUE
+                || tok.Type == TokenType.FALSE
                 || tok.Type == TokenType.FLOAT
                 || tok.Type == TokenType.IDENTIFIER)
             {
@@ -1176,9 +1223,11 @@ namespace Mizu3.Parser
                         node.Token.UpdateRange(tok);
                         node.Nodes.Add(n);
                     }
-                    tok = scanner.LookAhead(TokenType.STRING, TokenType.NUMBER, TokenType.FLOAT, TokenType.IDENTIFIER);
+                    tok = scanner.LookAhead(TokenType.STRING, TokenType.NUMBER, TokenType.TRUE, TokenType.FALSE, TokenType.FLOAT, TokenType.IDENTIFIER);
                 } while (tok.Type == TokenType.STRING
                     || tok.Type == TokenType.NUMBER
+                    || tok.Type == TokenType.TRUE
+                    || tok.Type == TokenType.FALSE
                     || tok.Type == TokenType.FLOAT
                     || tok.Type == TokenType.IDENTIFIER);
             }
