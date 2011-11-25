@@ -51,13 +51,14 @@ namespace Mizu3.Parser
             }
 
             
-            tok = scanner.LookAhead(TokenType.LET, TokenType.IMPORT, TokenType.OUT, TokenType.TRY, TokenType.RETURN, TokenType.WHILE, TokenType.TYPE, TokenType.IDENTIFIER);
+            tok = scanner.LookAhead(TokenType.LET, TokenType.IMPORT, TokenType.OUT, TokenType.TRY, TokenType.RETURN, TokenType.WHILE, TokenType.BREAK, TokenType.TYPE, TokenType.IDENTIFIER);
             if (tok.Type == TokenType.LET
                 || tok.Type == TokenType.IMPORT
                 || tok.Type == TokenType.OUT
                 || tok.Type == TokenType.TRY
                 || tok.Type == TokenType.RETURN
                 || tok.Type == TokenType.WHILE
+                || tok.Type == TokenType.BREAK
                 || tok.Type == TokenType.TYPE
                 || tok.Type == TokenType.IDENTIFIER)
             {
@@ -84,13 +85,14 @@ namespace Mizu3.Parser
 
             do {
                 ParseStatement(node);
-                tok = scanner.LookAhead(TokenType.LET, TokenType.IMPORT, TokenType.OUT, TokenType.TRY, TokenType.RETURN, TokenType.WHILE, TokenType.TYPE, TokenType.IDENTIFIER);
+                tok = scanner.LookAhead(TokenType.LET, TokenType.IMPORT, TokenType.OUT, TokenType.TRY, TokenType.RETURN, TokenType.WHILE, TokenType.BREAK, TokenType.TYPE, TokenType.IDENTIFIER);
             } while (tok.Type == TokenType.LET
                 || tok.Type == TokenType.IMPORT
                 || tok.Type == TokenType.OUT
                 || tok.Type == TokenType.TRY
                 || tok.Type == TokenType.RETURN
                 || tok.Type == TokenType.WHILE
+                || tok.Type == TokenType.BREAK
                 || tok.Type == TokenType.TYPE
                 || tok.Type == TokenType.IDENTIFIER);
 
@@ -104,7 +106,7 @@ namespace Mizu3.Parser
             ParseNode node = parent.CreateNode(scanner.GetToken(TokenType.Statement), "Statement");
             parent.Nodes.Add(node);
 
-            tok = scanner.LookAhead(TokenType.LET, TokenType.IMPORT, TokenType.OUT, TokenType.TRY, TokenType.RETURN, TokenType.WHILE, TokenType.TYPE, TokenType.IDENTIFIER);
+            tok = scanner.LookAhead(TokenType.LET, TokenType.IMPORT, TokenType.OUT, TokenType.TRY, TokenType.RETURN, TokenType.WHILE, TokenType.BREAK, TokenType.TYPE, TokenType.IDENTIFIER);
             switch (tok.Type)
             {
                 case TokenType.LET:
@@ -125,11 +127,14 @@ namespace Mizu3.Parser
                 case TokenType.WHILE:
                     ParseWhileStatement(node);
                     break;
+                case TokenType.BREAK:
+                    ParseBreakStatement(node);
+                    break;
                 case TokenType.TYPE:
                     ParseFuncCallStatement(node);
                     break;
                 case TokenType.IDENTIFIER:
-                    ParseArrayAssignmentStatement(node);
+                    ParseVariableReassignmentStatement(node);
                     break;
                 default:
                     tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found.", 0x0002, 0, tok.StartPos, tok.StartPos, tok.Length));
@@ -196,11 +201,11 @@ namespace Mizu3.Parser
             parent.Token.UpdateRange(node.Token);
         }
 
-        private void ParseArrayAssignmentStatement(ParseNode parent)
+        private void ParseVariableReassignmentStatement(ParseNode parent)
         {
             Token tok;
             ParseNode n;
-            ParseNode node = parent.CreateNode(scanner.GetToken(TokenType.ArrayAssignmentStatement), "ArrayAssignmentStatement");
+            ParseNode node = parent.CreateNode(scanner.GetToken(TokenType.VariableReassignmentStatement), "VariableReassignmentStatement");
             parent.Nodes.Add(node);
 
 
@@ -568,7 +573,7 @@ namespace Mizu3.Parser
             node.Nodes.Add(n);
 
             
-            tok = scanner.LookAhead(TokenType.LET, TokenType.IMPORT, TokenType.OUT, TokenType.TRY, TokenType.RETURN, TokenType.WHILE, TokenType.TYPE, TokenType.IDENTIFIER, TokenType.BRCKOPEN);
+            tok = scanner.LookAhead(TokenType.LET, TokenType.IMPORT, TokenType.OUT, TokenType.TRY, TokenType.RETURN, TokenType.WHILE, TokenType.BREAK, TokenType.TYPE, TokenType.IDENTIFIER, TokenType.BRCKOPEN);
             switch (tok.Type)
             {
                 case TokenType.LET:
@@ -577,6 +582,7 @@ namespace Mizu3.Parser
                 case TokenType.TRY:
                 case TokenType.RETURN:
                 case TokenType.WHILE:
+                case TokenType.BREAK:
                 case TokenType.TYPE:
                 case TokenType.IDENTIFIER:
                     ParseStatement(node);
@@ -825,13 +831,14 @@ namespace Mizu3.Parser
             node.Nodes.Add(n);
 
             
-            tok = scanner.LookAhead(TokenType.LET, TokenType.IMPORT, TokenType.OUT, TokenType.TRY, TokenType.RETURN, TokenType.WHILE, TokenType.TYPE, TokenType.IDENTIFIER);
+            tok = scanner.LookAhead(TokenType.LET, TokenType.IMPORT, TokenType.OUT, TokenType.TRY, TokenType.RETURN, TokenType.WHILE, TokenType.BREAK, TokenType.TYPE, TokenType.IDENTIFIER);
             if (tok.Type == TokenType.LET
                 || tok.Type == TokenType.IMPORT
                 || tok.Type == TokenType.OUT
                 || tok.Type == TokenType.TRY
                 || tok.Type == TokenType.RETURN
                 || tok.Type == TokenType.WHILE
+                || tok.Type == TokenType.BREAK
                 || tok.Type == TokenType.TYPE
                 || tok.Type == TokenType.IDENTIFIER)
             {
@@ -882,13 +889,14 @@ namespace Mizu3.Parser
             node.Nodes.Add(n);
 
             
-            tok = scanner.LookAhead(TokenType.LET, TokenType.IMPORT, TokenType.OUT, TokenType.TRY, TokenType.RETURN, TokenType.WHILE, TokenType.TYPE, TokenType.IDENTIFIER);
+            tok = scanner.LookAhead(TokenType.LET, TokenType.IMPORT, TokenType.OUT, TokenType.TRY, TokenType.RETURN, TokenType.WHILE, TokenType.BREAK, TokenType.TYPE, TokenType.IDENTIFIER);
             if (tok.Type == TokenType.LET
                 || tok.Type == TokenType.IMPORT
                 || tok.Type == TokenType.OUT
                 || tok.Type == TokenType.TRY
                 || tok.Type == TokenType.RETURN
                 || tok.Type == TokenType.WHILE
+                || tok.Type == TokenType.BREAK
                 || tok.Type == TokenType.TYPE
                 || tok.Type == TokenType.IDENTIFIER)
             {
@@ -972,13 +980,14 @@ namespace Mizu3.Parser
             node.Nodes.Add(n);
 
             
-            tok = scanner.LookAhead(TokenType.LET, TokenType.IMPORT, TokenType.OUT, TokenType.TRY, TokenType.RETURN, TokenType.WHILE, TokenType.TYPE, TokenType.IDENTIFIER);
+            tok = scanner.LookAhead(TokenType.LET, TokenType.IMPORT, TokenType.OUT, TokenType.TRY, TokenType.RETURN, TokenType.WHILE, TokenType.BREAK, TokenType.TYPE, TokenType.IDENTIFIER);
             if (tok.Type == TokenType.LET
                 || tok.Type == TokenType.IMPORT
                 || tok.Type == TokenType.OUT
                 || tok.Type == TokenType.TRY
                 || tok.Type == TokenType.RETURN
                 || tok.Type == TokenType.WHILE
+                || tok.Type == TokenType.BREAK
                 || tok.Type == TokenType.TYPE
                 || tok.Type == TokenType.IDENTIFIER)
             {
@@ -989,6 +998,33 @@ namespace Mizu3.Parser
             tok = scanner.Scan(TokenType.BRCKCLOSE);
             if (tok.Type != TokenType.BRCKCLOSE)
                 tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.BRCKCLOSE.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
+            n = node.CreateNode(tok, tok.ToString() );
+            node.Token.UpdateRange(tok);
+            node.Nodes.Add(n);
+
+            parent.Token.UpdateRange(node.Token);
+        }
+
+        private void ParseBreakStatement(ParseNode parent)
+        {
+            Token tok;
+            ParseNode n;
+            ParseNode node = parent.CreateNode(scanner.GetToken(TokenType.BreakStatement), "BreakStatement");
+            parent.Nodes.Add(node);
+
+
+            
+            tok = scanner.Scan(TokenType.BREAK);
+            if (tok.Type != TokenType.BREAK)
+                tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.BREAK.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
+            n = node.CreateNode(tok, tok.ToString() );
+            node.Token.UpdateRange(tok);
+            node.Nodes.Add(n);
+
+            
+            tok = scanner.Scan(TokenType.SEMICOLON);
+            if (tok.Type != TokenType.SEMICOLON)
+                tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.SEMICOLON.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
             n = node.CreateNode(tok, tok.ToString() );
             node.Token.UpdateRange(tok);
             node.Nodes.Add(n);

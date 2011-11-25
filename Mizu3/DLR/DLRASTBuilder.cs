@@ -46,7 +46,7 @@ namespace Mizu3.DLR
                 return statements.ToArray();
             }
         }
-        private static Expression HandleStmt(ParseNode pn, ref LambdaBuilder func, ref List<ParameterExpression> locals, string src)
+        private static Expression HandleStmt(ParseNode pn, ref LambdaBuilder func, ref List<ParameterExpression> locals, string src, LabelTarget loop = null)
         {
             switch (pn.Token.Type)
             {
@@ -78,6 +78,7 @@ namespace Mizu3.DLR
                             case TokenType.FuncStatement:
                                 {
                                     //TODO: Implement this.
+                                    
                                     break;
                                 }
                             case TokenType.ArrayIndexExpr:
@@ -107,6 +108,17 @@ namespace Mizu3.DLR
 
                         #endregion
                     }
+                case TokenType.BreakStatement:
+                    {
+                        throw new NotImplementedException("Break Statements!");
+                        if (loop == null)
+                        {
+                            //TODO: Make this an error.
+                            return null;
+                        }
+                        else
+                            return Expression.Break(loop);
+                    }
                 case TokenType.WhileStatement:
                     {
                         Expression w = null;
@@ -119,6 +131,11 @@ namespace Mizu3.DLR
                         var rexp = HandleArgument(expr.Nodes[2], ref func);
                         var op = HandleNonMathExpr(expr.Nodes[1], lexp, rexp);
 
+                        var loopfunc = AstUtils.Lambda(typeof(void), "Loop");
+                        loopfunc.Locals.AddRange(locals);
+
+                        var l = Expression.Label("LoopBreak");
+                        
                         var bodyexp = new List<Expression>();
 
                         var bodylocs = new List<ParameterExpression>();
@@ -126,27 +143,53 @@ namespace Mizu3.DLR
 
                         if (body != null)
                             foreach (ParseNode p in body.Nodes)
-                                bodyexp.Add(HandleStmt(p.Nodes[0], ref func, ref bodylocs, src));
+                                bodyexp.Add(HandleStmt(p.Nodes[0], ref loopfunc, ref bodylocs, src,l));
 
-                        w = AstUtils.While(op, Expression.Block(bodyexp), Expression.Empty());
+                        loopfunc.Body = Expression.Block(bodyexp); 
+                        
+                        w = AstUtils.While(op, loopfunc.MakeLambda(), Expression.Empty());
+
 
                         return w;
                     }
-                case TokenType.ArrayAssignmentStatement:
+                case TokenType.VariableReassignmentStatement:
                     {
                         var vari = func.Locals.Find(it => it.Name == pn.Nodes[0].Token.Text);
-                        var inner = pn.Nodes[1].Nodes[1];
-                        var e = HandleArgument(inner, ref func);
 
-                        var right = pn.Nodes[3];
-                        var rexp = HandleArgument(right, ref func);
+                        var inner = pn.Nodes.Find(it => it.Token.Type == TokenType.ArrayIndexExpr);
+                        if (inner == null)
+                        {
+                            //Normal variable assignment.
+
+                            var right = pn.Nodes.Find(it => it.Token.Type == TokenType.Argument || it.Token.Type == TokenType.FuncStatement);
+
+                            switch(right.Token.Type)
+                            {
+                                case TokenType.Argument:
+                                    return Expression.Assign(vari,
+                                         HandleArgument(right, ref func));
+                                case TokenType.FuncStatement:
+                                    throw new NotImplementedException("Func statements in variable reassignment statements!");
+                            }
+
+                            return null; //Satisfy the compiler.
+                        }
+                        else
+                        {
+                            //Array assignment
+
+                            var e = HandleArgument(inner.Nodes[1], ref func);
+
+                            var right = pn.Nodes[3];
+                            var rexp = HandleArgument(right, ref func);
 
 
-                        return Expression.Assign(
-                            Expression.ArrayAccess(vari, e),
-                            Expression.Convert(
-                                rexp,
-                                typeof(object)));
+                            return Expression.Assign(
+                                Expression.ArrayAccess(vari, e),
+                                Expression.Convert(
+                                    rexp,
+                                    typeof(object)));
+                        }
                     }
                 case TokenType.OutStatement:
                     {

@@ -247,7 +247,7 @@ namespace Mizu3.Compiler
                             #endregion
                             break;
                         }
-                    case TokenType.ArrayAssignmentStatement:
+                    case TokenType.VariableReassignmentStatement:
                         {
                             //Assignment of a value in an array.
                             var arryname = stmt.Nodes[0];

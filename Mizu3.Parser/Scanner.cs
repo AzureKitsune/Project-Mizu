@@ -38,11 +38,11 @@ namespace Mizu3.Parser
             SkipList.Add(TokenType.COMMENTBLOCK);
             SkipList.Add(TokenType.COMMENTLINE);
 
-            regex = new Regex(@"(?!(itr|fun|let|new|import|from|out|ret|try|cat(ch)?|while|true|false))[a-zA-Z][a-zA-Z0-9_]*", RegexOptions.Compiled);
+            regex = new Regex(@"(?!(itr|fun|let|new|import|from|out|ret|try|cat(ch)?|while|true|false|break))[a-zA-Z][a-zA-Z0-9_]*", RegexOptions.Compiled);
             Patterns.Add(TokenType.IDENTIFIER, regex);
             Tokens.Add(TokenType.IDENTIFIER);
 
-            regex = new Regex(@"(?!(itr|fun|let|new|import|from|out|ret|try|cat(ch)?|while|true|false))\b[a-zA-Z0-9_]*((\.[a-zA-Z0-9_]*))*\b", RegexOptions.Compiled);
+            regex = new Regex(@"(?!(itr|fun|let|new|import|from|out|ret|try|cat(ch)?|while|true|false|break))\b[a-zA-Z0-9_]*((\.[a-zA-Z0-9_]*))*\b", RegexOptions.Compiled);
             Patterns.Add(TokenType.TYPE, regex);
             Tokens.Add(TokenType.TYPE);
 
@@ -222,6 +222,10 @@ namespace Mizu3.Parser
             Patterns.Add(TokenType.FALSE, regex);
             Tokens.Add(TokenType.FALSE);
 
+            regex = new Regex(@"break", RegexOptions.Compiled);
+            Patterns.Add(TokenType.BREAK, regex);
+            Tokens.Add(TokenType.BREAK);
+
 
         }
 
@@ -346,7 +350,7 @@ namespace Mizu3.Parser
             Statements= 3,
             Statement= 4,
             ImportStatement= 5,
-            ArrayAssignmentStatement= 6,
+            VariableReassignmentStatement= 6,
             LetStatement= 7,
             IterStatement= 8,
             FuncStatement= 9,
@@ -357,63 +361,65 @@ namespace Mizu3.Parser
             TryCatchStatement= 14,
             FuncCallStatement= 15,
             WhileStatement= 16,
-            Expr    = 17,
-            Parameter= 18,
-            Argument= 19,
-            FuncCall= 20,
-            ArrayIndexExpr= 21,
-            ObjectCreatetion= 22,
-            Boolean = 23,
-            MathExpr= 24,
-            OPERATOR= 25,
+            BreakStatement= 17,
+            Expr    = 18,
+            Parameter= 19,
+            Argument= 20,
+            FuncCall= 21,
+            ArrayIndexExpr= 22,
+            ObjectCreatetion= 23,
+            Boolean = 24,
+            MathExpr= 25,
+            OPERATOR= 26,
 
             //Terminal tokens:
-            IDENTIFIER= 26,
-            TYPE    = 27,
-            LET     = 28,
-            ITER    = 29,
-            STRING  = 30,
-            EMPTYLINE= 31,
-            WHITESPACE= 32,
-            TAB     = 33,
-            NEWLINE = 34,
-            COMMENTBLOCK= 35,
-            COMMENTLINE= 36,
-            EOF     = 37,
-            EQUAL   = 38,
-            PLUS    = 39,
-            MINUS   = 40,
-            MULTI   = 41,
-            DIV     = 42,
-            SEMICOLON= 43,
-            NUMBER  = 44,
-            FLOAT   = 45,
-            ARROW   = 46,
-            BRCKOPEN= 47,
-            BRCKCLOSE= 48,
-            BROPEN  = 49,
-            BRCLOSE = 50,
-            COMMA   = 51,
-            FUNC    = 52,
-            COLON   = 53,
-            OPENBR  = 54,
-            CLOSEBR = 55,
-            RETURN  = 56,
-            NEW     = 57,
-            IMPORT  = 58,
-            FROM    = 59,
-            OUT     = 60,
-            HASH    = 61,
-            TRY     = 62,
-            CATCH   = 63,
-            WHILE   = 64,
-            GT      = 65,
-            LT      = 66,
-            GTE     = 67,
-            LTE     = 68,
-            NOTEQUAL= 69,
-            TRUE    = 70,
-            FALSE   = 71
+            IDENTIFIER= 27,
+            TYPE    = 28,
+            LET     = 29,
+            ITER    = 30,
+            STRING  = 31,
+            EMPTYLINE= 32,
+            WHITESPACE= 33,
+            TAB     = 34,
+            NEWLINE = 35,
+            COMMENTBLOCK= 36,
+            COMMENTLINE= 37,
+            EOF     = 38,
+            EQUAL   = 39,
+            PLUS    = 40,
+            MINUS   = 41,
+            MULTI   = 42,
+            DIV     = 43,
+            SEMICOLON= 44,
+            NUMBER  = 45,
+            FLOAT   = 46,
+            ARROW   = 47,
+            BRCKOPEN= 48,
+            BRCKCLOSE= 49,
+            BROPEN  = 50,
+            BRCLOSE = 51,
+            COMMA   = 52,
+            FUNC    = 53,
+            COLON   = 54,
+            OPENBR  = 55,
+            CLOSEBR = 56,
+            RETURN  = 57,
+            NEW     = 58,
+            IMPORT  = 59,
+            FROM    = 60,
+            OUT     = 61,
+            HASH    = 62,
+            TRY     = 63,
+            CATCH   = 64,
+            WHILE   = 65,
+            GT      = 66,
+            LT      = 67,
+            GTE     = 68,
+            LTE     = 69,
+            NOTEQUAL= 70,
+            TRUE    = 71,
+            FALSE   = 72,
+            BREAK   = 73
     }
 
     public class Token

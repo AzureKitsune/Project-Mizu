@@ -166,8 +166,8 @@ namespace Mizu3.Parser
                 case TokenType.ImportStatement:
                     Value = EvalImportStatement(tree, paramlist);
                     break;
-                case TokenType.ArrayAssignmentStatement:
-                    Value = EvalArrayAssignmentStatement(tree, paramlist);
+                case TokenType.VariableReassignmentStatement:
+                    Value = EvalVariableReassignmentStatement(tree, paramlist);
                     break;
                 case TokenType.LetStatement:
                     Value = EvalLetStatement(tree, paramlist);
@@ -198,6 +198,9 @@ namespace Mizu3.Parser
                     break;
                 case TokenType.WhileStatement:
                     Value = EvalWhileStatement(tree, paramlist);
+                    break;
+                case TokenType.BreakStatement:
+                    Value = EvalBreakStatement(tree, paramlist);
                     break;
                 case TokenType.Expr:
                     Value = EvalExpr(tree, paramlist);
@@ -254,7 +257,7 @@ namespace Mizu3.Parser
             throw new NotImplementedException();
         }
 
-        protected virtual object EvalArrayAssignmentStatement(ParseTree tree, params object[] paramlist)
+        protected virtual object EvalVariableReassignmentStatement(ParseTree tree, params object[] paramlist)
         {
             throw new NotImplementedException();
         }
@@ -305,6 +308,11 @@ namespace Mizu3.Parser
         }
 
         protected virtual object EvalWhileStatement(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalBreakStatement(ParseTree tree, params object[] paramlist)
         {
             throw new NotImplementedException();
         }

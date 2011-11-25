@@ -24,4 +24,6 @@ out myArray[- 5 1];
 let this = true;
 while(this != false) {
 	out "LOL";
+	let w = 0;
+	this = true;
 }
