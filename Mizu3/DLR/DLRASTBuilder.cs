@@ -1,44 +1,34 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="DLRCompiler.cs" company="">
+// <copyright file="DLRASTBuilder.cs" company="">
 // TODO: Update copyright text.
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace Mizu3.DLRCompiler
+namespace Mizu3.DLR
 {
-    //http://www.codeproject.com/KB/codegen/astdlrtest.aspx
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
-    using System.Dynamic;
     using System.Linq.Expressions;
-    using Microsoft.Scripting.Ast;
-    using Microsoft.Scripting.Generation;
-    using Microsoft.Scripting.Utils;
-    using AstUtils = Microsoft.Scripting.Ast.Utils;
-    using Microsoft.Scripting;
-    using System.IO;
     using Mizu3.Parser;
+    using Microsoft.Scripting.Ast;
+    using AstUtils = Microsoft.Scripting.Ast.Utils;
     using System.Reflection;
+
     /// <summary>
     /// TODO: Update summary.
     /// </summary>
-    public class DLRCompiler
+    public class DLRASTBuilder
     {
-        public void Compile(Compiler.CompilerParameters info)
+        public static System.Linq.Expressions.Expression[] Parse(string filename, ref LambdaBuilder main)
         {
-            var gen = new AssemblyGen(new System.Reflection.AssemblyName(info.AssemblyName), new FileInfo(info.OutputFilename).DirectoryName, ".exe", info.IsDebugMode);
-            var file = info.SourceCodeFiles[0];
-
-            var main =  AstUtils.Lambda(typeof(void),"Main");
-
-            var locals = new List<ParameterExpression>();
             var statements = new List<Expression>();
 
             {
+                var locals = new List<ParameterExpression>();
 
-                string src = System.IO.File.ReadAllText(file);
+                string src = System.IO.File.ReadAllText(filename);
                 var scanner = new Scanner();
                 var parser = new Parser(scanner);
                 var tree = parser.Parse(src);
@@ -50,31 +40,13 @@ namespace Mizu3.DLRCompiler
                     var x = HandleStmt(pn.Nodes[0], ref main, ref locals, src);
                     if (x != null)
                         statements.Add(x); //TODO: Handle this better
-                        
+
                 }
                 //statements.Add(Expressions.
+                return statements.ToArray();
             }
-            var exps = statements.ToArray();
-            main.Body = Expression.Block(typeof(void),exps);
-
-
-            var type= gen.DefinePublicType("Application",typeof(Object), true);
-            var meth = type.DefineMethod("Main", System.Reflection.MethodAttributes.Public | System.Reflection.MethodAttributes.Static);
-            Microsoft.Scripting.Generation.CompilerHelpers.CompileToMethod(main.MakeLambda(), meth, info.IsDebugMode); ;//CompileToMethod(meth, false);
-            type.CreateType();
-            gen.AssemblyBuilder.SetEntryPoint(meth);
-            gen.SaveAssembly();
-            
         }
-        private void PushError(string msg, int line, int col)
-        {
-           //TODO: Implement
-        }
-        private void PushWarning (string msg,int line, int col)
-        {
-            //TODO: Implement
-        }
-        private Expression HandleStmt(ParseNode pn, ref LambdaBuilder func,ref List<ParameterExpression> locals, string src)
+        private static Expression HandleStmt(ParseNode pn, ref LambdaBuilder func, ref List<ParameterExpression> locals, string src)
         {
             switch (pn.Token.Type)
             {
@@ -135,6 +107,31 @@ namespace Mizu3.DLRCompiler
 
                         #endregion
                     }
+                case TokenType.WhileStatement:
+                    {
+                        Expression w = null;
+
+                        var expr = pn.Nodes[2];
+
+                        var body = pn.Nodes.Find(it => it.Token.Type == TokenType.Statements); //Might be null.
+
+                        var lexp = HandleArgument(expr.Nodes[0], ref func);
+                        var rexp = HandleArgument(expr.Nodes[2], ref func);
+                        var op = HandleNonMathExpr(expr.Nodes[1], lexp, rexp);
+
+                        var bodyexp = new List<Expression>();
+
+                        var bodylocs = new List<ParameterExpression>();
+                        bodylocs.AddRange(locals);
+
+                        if (body != null)
+                            foreach (ParseNode p in body.Nodes)
+                                bodyexp.Add(HandleStmt(p.Nodes[0], ref func, ref bodylocs, src));
+
+                        w = AstUtils.While(op, Expression.Block(bodyexp), Expression.Empty());
+
+                        return w;
+                    }
                 case TokenType.ArrayAssignmentStatement:
                     {
                         var vari = func.Locals.Find(it => it.Name == pn.Nodes[0].Token.Text);
@@ -174,8 +171,21 @@ namespace Mizu3.DLRCompiler
             }
             return null;
         }
-        private Expression HandleArgument(ParseNode value, ref LambdaBuilder func) { Type t = null; return HandleArgument(value, ref func, out t); }
-        private Expression HandleArgument(ParseNode value, ref LambdaBuilder func, out Type ty)
+        private static Expression HandleNonMathExpr(ParseNode value, Expression left, Expression right)
+        {
+            switch (value.Token.Type)
+            {
+                case TokenType.LTE: return Expression.LessThanOrEqual(left, right);
+                case TokenType.LT: return Expression.LessThan(left, right);
+                case TokenType.GT: return Expression.GreaterThan(left, right);
+                case TokenType.GTE: return Expression.GreaterThanOrEqual(left, right);
+                case TokenType.EQUAL: return Expression.Equal(left, right);
+                case TokenType.NOTEQUAL: return Expression.NotEqual(left, right);
+            }
+            return null;
+        }
+        private static Expression HandleArgument(ParseNode value, ref LambdaBuilder func) { Type t = null; return HandleArgument(value, ref func, out t); }
+        private static Expression HandleArgument(ParseNode value, ref LambdaBuilder func, out Type ty)
         {
 
             ParseNode inner = null;
@@ -227,16 +237,38 @@ namespace Mizu3.DLRCompiler
                             //TODO: Implement getting array values.
                             var vari = func.Locals.Find(it => it.Name == inner.Token.Text);
                             //Expression.PropertyOrField(
-                            exp = Expression.ArrayIndex(vari, HandleArgument(value.Nodes[1].Nodes[1],ref func));
+                            exp = Expression.ArrayIndex(vari, HandleArgument(value.Nodes[1].Nodes[1], ref func));
 
                             ty = exp.Type;
+                        }
+                        return exp;
+                    }
+                case TokenType.Boolean:
+                    {
+                        var i = value.Nodes[0].Nodes[0];
+                        switch (i.Token.Type)
+                        {
+                            case TokenType.TRUE:
+                                {
+                                    exp = Expression.Constant(true);
+
+                                    ty = exp.Type;
+                                    break;
+                                }
+                            case TokenType.FALSE:
+                                {
+                                    exp = Expression.Constant(false);
+
+                                    ty = exp.Type;
+                                    break;
+                                }
                         }
                         return exp;
                     }
             }
             return exp;
         }
-        private Expression HandleMathExpr(ParseNode pn, ref LambdaBuilder func)
+        private static Expression HandleMathExpr(ParseNode pn, ref LambdaBuilder func)
         {
             var op = pn.Nodes[0];
             var left = pn.Nodes[1];

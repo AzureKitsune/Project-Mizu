@@ -17,8 +17,8 @@
 <% @TinyPG Namespace="Mizu3.Parser" Language="C#" OutputPath="C:\\Users\\alex\\Documents\\visual studio 2010\\Projects\\Mizu3\\Mizu3.Parser\\" %>
 
 //IDENTIFIER -> @"(?!(uses|var|if|for|handle|while|true|false))[a-zA-Z][a-zA-Z0-9_]*";
-IDENTIFIER -> @"(?!(itr|fun|let|new|import|from|out|ret|try|cat(ch)?|while))[a-zA-Z][a-zA-Z0-9_]*";
-TYPE -> @"(?!(itr|fun|let|new|import|from|out|ret|try|cat(ch)?|while))\b[a-zA-Z0-9_]*((\.[a-zA-Z0-9_]*))*\b";
+IDENTIFIER -> @"(?!(itr|fun|let|new|import|from|out|ret|try|cat(ch)?|while|true|false))[a-zA-Z][a-zA-Z0-9_]*";
+TYPE -> @"(?!(itr|fun|let|new|import|from|out|ret|try|cat(ch)?|while|true|false))\b[a-zA-Z0-9_]*((\.[a-zA-Z0-9_]*))*\b";
 LET -> @"let";
 ITER -> @"itr";
 [Color(255, 0, 0)] STRING -> @"\"".+?\""";

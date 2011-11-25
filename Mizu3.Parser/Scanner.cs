@@ -38,11 +38,11 @@ namespace Mizu3.Parser
             SkipList.Add(TokenType.COMMENTBLOCK);
             SkipList.Add(TokenType.COMMENTLINE);
 
-            regex = new Regex(@"(?!(itr|fun|let|new|import|from|out|ret|try|cat(ch)?|while))[a-zA-Z][a-zA-Z0-9_]*", RegexOptions.Compiled);
+            regex = new Regex(@"(?!(itr|fun|let|new|import|from|out|ret|try|cat(ch)?|while|true|false))[a-zA-Z][a-zA-Z0-9_]*", RegexOptions.Compiled);
             Patterns.Add(TokenType.IDENTIFIER, regex);
             Tokens.Add(TokenType.IDENTIFIER);
 
-            regex = new Regex(@"(?!(itr|fun|let|new|import|from|out|ret|try|cat(ch)?|while))\b[a-zA-Z0-9_]*((\.[a-zA-Z0-9_]*))*\b", RegexOptions.Compiled);
+            regex = new Regex(@"(?!(itr|fun|let|new|import|from|out|ret|try|cat(ch)?|while|true|false))\b[a-zA-Z0-9_]*((\.[a-zA-Z0-9_]*))*\b", RegexOptions.Compiled);
             Patterns.Add(TokenType.TYPE, regex);
             Tokens.Add(TokenType.TYPE);
 

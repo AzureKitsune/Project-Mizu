@@ -73,8 +73,9 @@
     <Compile Include="Compiler\CompilerLocalBuilder.cs" />
     <Compile Include="Compiler\CompilerParameters.cs" />
     <Compile Include="Compiler\TypeResolver.cs" />
-    <Compile Include="DLRCompiler\DLRCompiler.cs" />
-    <Compile Include="DLRCompiler\MizuLanguageContext.cs" />
+    <Compile Include="DLR\DLRASTBuilder.cs" />
+    <Compile Include="DLR\DLRCompiler\DLRCompiler.cs" />
+    <Compile Include="DLR\DLRCompiler\MizuLanguageContext.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

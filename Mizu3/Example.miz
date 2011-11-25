@@ -20,3 +20,8 @@ out myArray[- 5 1];
 /*let fib = fun(n) -> {
 	out "Test from function!";
 };*/
+
+let this = true;
+while(this != false) {
+	out "LOL";
+}
