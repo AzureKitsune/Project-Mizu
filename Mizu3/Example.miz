@@ -14,8 +14,8 @@ myArray[4] = 2; */
 /*out myArray[0];
 out myArray[1];
 out myArray[2];
-out myArray[3]; */
-out myArray[- 5 1]; 
+out myArray[3]; 
+out myArray[- 5 1]; */
 
 /*let fib = fun(n) -> {
 	out "Test from function!";

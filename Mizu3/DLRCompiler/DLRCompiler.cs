@@ -20,6 +20,7 @@ namespace Mizu3.DLRCompiler
     using Microsoft.Scripting;
     using System.IO;
     using Mizu3.Parser;
+    using System.Reflection;
     /// <summary>
     /// TODO: Update summary.
     /// </summary>
@@ -88,38 +89,16 @@ namespace Mizu3.DLRCompiler
 
                         Expression exp = null;
 
-                        var value =pn.Nodes[3];
+                        var value = pn.Nodes[3];
                         switch (value.Token.Type)
                         {
                             case TokenType.Argument:
                                 {
-                                    var inner = value.Nodes[0];
-                                    switch (inner.Token.Type)
-                                    {
-                                        case TokenType.STRING:
-                                            ty = typeof(string);
-
-                                            //Remove quotes from string.
-                                            string str = inner.Token.Text.TrimStart('\"').TrimEnd('\"');
-
-                                            exp = Expression.Constant(str);
-                                            break;
-                                        case TokenType.NUMBER:
-                                            ty = typeof(int);
-
-                                            exp = Expression.Constant(int.Parse(inner.Token.Text));
-                                            break;
-                                        case TokenType.FLOAT:
-                                            ty = typeof(double);
-
-                                            exp = Expression.Constant(double.Parse(inner.Token.Text));
-                                            break;
-                                    }
+                                    exp = HandleArgument(value, ref func, out ty);
                                 }
                                 break;
                             case TokenType.MathExpr:
                                 {
-
                                     exp = HandleMathExpr(value, ref func, locals);
                                     ty = exp.Type;
                                     break;
@@ -127,6 +106,7 @@ namespace Mizu3.DLRCompiler
                             case TokenType.FuncStatement:
                                 {
                                     //TODO: Implement this.
+                                    break;
                                 }
                             default:
                                 ty = typeof(object);
@@ -135,7 +115,7 @@ namespace Mizu3.DLRCompiler
 
                         //TODO: Check if variable exist!
 
-                        ParameterExpression var = (ParameterExpression)func.Variable(ty,nam);
+                        ParameterExpression var = (ParameterExpression)func.Variable(ty, nam);
 
                         locals.Add(var);
 
@@ -145,9 +125,73 @@ namespace Mizu3.DLRCompiler
 
                         #endregion
                     }
-                    
+                case TokenType.OutStatement:
+                    {
+                        MethodInfo writeLine = null;
+
+                        if (pn.Nodes.Count > 2)
+                        {
+                            var n = pn.Nodes[1];
+                            Type ty = null;
+                            var exp = HandleArgument(n, ref func, out ty);
+
+                            writeLine = typeof(Console).GetMethod("WriteLine", new Type[] { ty });
+                            return Expression.Call(writeLine, exp);
+                        }
+                        else
+                        {
+                            writeLine = typeof(Console).GetMethod("WriteLine", new Type[] {});
+                            return Expression.Call(writeLine);
+                        }
+                    }
+
             }
             return null;
+        }
+        private Expression HandleArgument(ParseNode value, ref LambdaBuilder func) { Type t = null; return HandleArgument(value, ref func, out t); }
+        private Expression HandleArgument(ParseNode value, ref LambdaBuilder func, out Type ty)
+        {
+            var inner = value.Nodes[0];
+
+            ty = null;
+
+            Expression exp = null;
+            switch (inner.Token.Type)
+            {
+                case TokenType.STRING:
+                    ty = typeof(string);
+
+                    //Remove quotes from string.
+                    string str = inner.Token.Text.TrimStart('\"').TrimEnd('\"');
+
+                    exp = Expression.Constant(str);
+                    break;
+                case TokenType.NUMBER:
+                    ty = typeof(int);
+
+                    exp = Expression.Constant(int.Parse(inner.Token.Text));
+                    break;
+                case TokenType.FLOAT:
+                    ty = typeof(double);
+
+                    exp = Expression.Constant(double.Parse(inner.Token.Text));
+                    break;
+                case TokenType.IDENTIFIER:
+                    {
+                        if (value.Nodes.Count == 1)
+                        {
+                            //If not an array value.
+                            exp = func.Locals.Find(it => it.Name == inner.Token.Text);
+                            ty = exp.Type;
+                        }
+                        else
+                        {
+                            //TODO: Implement getting array values.
+                        }
+                        return exp;
+                    }
+            }
+            return exp;
         }
         private Expression HandleMathExpr(ParseNode pn, ref LambdaBuilder func, List<ParameterExpression> locals)
         {
