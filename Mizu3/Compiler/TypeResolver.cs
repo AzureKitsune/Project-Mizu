@@ -33,5 +33,14 @@ namespace Mizu3.Compiler
 
             return false;
         }
+        public static Type[] CreateTypeArray(Type ty, int count)
+        {
+            var arr = new Type[count];
+            for (int i = 0; i < count; i++)
+            {
+                arr[i] = ty;
+            }
+            return arr;
+        }
     }
 }

@@ -22,7 +22,7 @@ namespace Mizu3
             info.IsDebugMode = true;
 
 
-            var result = Compiler.Compiler.Compile(info);
+            new DLRCompiler.DLRCompiler().Compile(info);
             object br = null;
         }
     }

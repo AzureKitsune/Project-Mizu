@@ -20,10 +20,13 @@ namespace Mizu3.Compiler
     /// <summary>
     /// TODO: Update summary.
     /// </summary>
+    [Obsolete("Please use the DLR compiler. This is kept for historic reasons!",true)]
     public class Compiler
     {
-        public static CompileOperationResult Compile(CompilerParameters param)
+        private CompilerParameters params_in = null;
+        public CompileOperationResult Compile(CompilerParameters param)
         {
+
             var result = new CompileOperationResult();
 
             var errors = new List<CompilerError>();
@@ -51,6 +54,7 @@ namespace Mizu3.Compiler
 
             if (errors.Count == 0)
             {
+                params_in = param;
                 AssemblyBuilder ab = GenerateAssembly(param,
                     (info, doc, mb, file) =>
                     {
@@ -103,7 +107,7 @@ namespace Mizu3.Compiler
             result.Errors = errors.ToArray();
             return result;
         }
-        private static void HandleStmt(ParseNode pn, ILGenerator gen, CompilerParameters info, ref List<CompilerLocalBuilder> locals, string src, string filename, ISymbolDocumentWriter doc, TypeBuilder ty, out CompilerError[] errs)
+        private void HandleStmt(ParseNode pn, ILGenerator gen, CompilerParameters info, ref List<CompilerLocalBuilder> locals, string src, string filename, ISymbolDocumentWriter doc, TypeBuilder ty, out CompilerError[] errs)
         {
             errs = null;
             if (pn.Token.Type == TokenType.Statement)
@@ -138,7 +142,7 @@ namespace Mizu3.Compiler
                             List<CompilerError> err = new List<CompilerError>();
                             CompilerError[] ee = null;
 
-                            typ = HandleRightSideOfEqual(data, ref gen, ref locals, ref ty, src, filename, out ee);
+                            typ = HandleRightSideOfEqual(data, ref gen, ref locals, ref ty, doc, src, filename, out ee);
 
                             if (ee != null)
                                 foreach (CompilerError e in ee)
@@ -184,8 +188,12 @@ namespace Mizu3.Compiler
                                                 //A variable array.
                                                 LoadLocal(arg.Nodes[0], ref locals, ref gen, src, filename, out ee, out typ, false);
 
-                                                var num = arg.Nodes[1].Nodes.Find(it => it.Token.Type == TokenType.NUMBER);
-                                                gen.Emit(OpCodes.Ldc_I4, int.Parse(num.Token.Text));
+                                                var num = arg.Nodes[1].Nodes[1];
+
+                                                //gen.Emit(OpCodes.Ldc_I4, int.Parse(num.Token.Text));
+                                                CompilerError[] n; //Discarded
+                                                HandleRightSideOfEqual(num, ref gen, ref locals, ref ty, doc, src, filename, out n);
+
                                                 gen.Emit(OpCodes.Ldelem,typeof(object));
                                                 typ = typeof(object);
                                                 gen.Emit(OpCodes.Callvirt, typ.GetMethod("ToString", new Type[] { }));
@@ -213,7 +221,7 @@ namespace Mizu3.Compiler
                                     default:
                                         {
                                             CompilerError[] e2;
-                                            Type typ = HandleRightSideOfEqual(arg, ref  gen, ref locals, ref ty, src, filename, out e2);
+                                            Type typ = HandleRightSideOfEqual(arg, ref  gen, ref locals, ref ty, doc, src, filename, out e2);
 
                                             if (typ != typeof(string))
                                             {
@@ -250,7 +258,7 @@ namespace Mizu3.Compiler
                             Type t;
                             LoadLocal(arryname, ref locals, ref gen, src, filename, out e, out t, false);
                             gen.Emit(OpCodes.Ldc_I4, int.Parse(num.Token.Text));
-                            t = HandleRightSideOfEqual(stmt.Nodes[3],ref gen, ref locals,ref ty, src, filename,out es);
+                            t = HandleRightSideOfEqual(stmt.Nodes[3],ref gen, ref locals,ref ty, doc, src, filename,out es);
                             if (TypeResolver.IsValueType(t))
                                 gen.Emit(OpCodes.Box, t);
                             gen.Emit(OpCodes.Stelem,typeof(object));
@@ -260,7 +268,7 @@ namespace Mizu3.Compiler
                 }
             }
         }
-        private static Type HandleMathExpr(ParseNode pn, ref ILGenerator gen, ref List<CompilerLocalBuilder> locals, string src, string filename, out CompilerError[] errs)
+        private Type HandleMathExpr(ParseNode pn, ref ILGenerator gen, ref List<CompilerLocalBuilder> locals, string src, string filename, out CompilerError[] errs)
         {
             errs = new CompilerError[4];
             //type = typeof(float); //Just as a pre-caution.
@@ -391,7 +399,7 @@ namespace Mizu3.Compiler
 
         }
 
-        private static bool LoadLocal(ParseNode p, ref List<CompilerLocalBuilder> locals, ref ILGenerator gen, string src, string filename, out CompilerError err, out Type ty, bool ldaddress = false)
+        private bool LoadLocal(ParseNode p, ref List<CompilerLocalBuilder> locals, ref ILGenerator gen, string src, string filename, out CompilerError err, out Type ty, bool ldaddress = false)
         {
             var pos = p.GetLineAndCol(src);
 
@@ -425,7 +433,7 @@ namespace Mizu3.Compiler
             }
         }
         //Was return Type, then IEnumerable<CompilerError. To lazy to fix.
-        private static Type HandleRightSideOfEqual(ParseNode pn, ref ILGenerator gen, ref List<CompilerLocalBuilder> locals, ref TypeBuilder ty, string src, string filename, out CompilerError[] ee)
+        private Type HandleRightSideOfEqual(ParseNode pn, ref ILGenerator gen, ref List<CompilerLocalBuilder> locals, ref TypeBuilder ty, ISymbolDocumentWriter doc, string src, string filename, out CompilerError[] ee)
         {
             ee = null;
             switch (pn.Token.Type)
@@ -450,18 +458,18 @@ namespace Mizu3.Compiler
                                     var num = int.Parse(inner.Token.Text);
                                     gen.Emit(OpCodes.Ldc_I4, num);
 
-                                    return  typeof(int);
+                                    return typeof(int);
                                 }
                             case TokenType.FLOAT:
                                 {
                                     var flo = double.Parse(inner.Token.Text);
                                     gen.Emit(OpCodes.Ldc_R8, flo);
 
-                                    return  typeof(double);
+                                    return typeof(double);
                                 }
                             case TokenType.IDENTIFIER:
                                 {
-                                    
+
                                     if (pn.Nodes.Count > 1)
                                     {
                                         //getting a value from an array.
@@ -472,7 +480,7 @@ namespace Mizu3.Compiler
                                         //copying/loading a value from a variable.
                                         CompilerError e = null;
                                         Type t = null;
-                                        var res = LoadLocal(inner,ref locals, ref gen, src, filename, out e, out t);
+                                        var res = LoadLocal(inner, ref locals, ref gen, src, filename, out e, out t);
 
                                         if (res == false)
                                         {
@@ -488,6 +496,98 @@ namespace Mizu3.Compiler
                         }
                         break;
                     }
+                case TokenType.FuncStatement:
+                    {
+                        var parameters = pn.Nodes.FindAll(it => it.Token.Type == TokenType.Parameter);
+                        var methodname = pn.Parent.Nodes[1];
+                        var body = pn.Nodes.Find(it => it.Token.Type == TokenType.Statement || it.Token.Type == TokenType.Statements);
+
+
+
+
+                        Type rttype = null;
+
+                        if (body.Token.Type == TokenType.Statement)
+                            if (body.Nodes.Find(it => it.Token.Type == TokenType.RetStatement) == null)
+                                rttype = typeof(void);
+                            else
+                                rttype = typeof(System.Object);
+                        else
+                            foreach(var p in body.Nodes)
+                                if (p.Nodes.Find(it => it.Token.Type == TokenType.RetStatement) == null)
+                                    rttype = typeof(void);
+                                else
+                                    rttype = typeof(System.Object);
+
+
+                        string typestr = null;
+                        if (rttype == typeof(void))
+                        {
+                            typestr += "System.Action`";
+                            typestr += (parameters.Count).ToString() + "[";
+                        }
+                        else
+                        {
+                            typestr += "System.Func`";
+                            typestr += (parameters.Count + 1).ToString() + "[";
+                        }
+                        typestr += "System.Object";
+
+                        if (parameters.Count > 1)
+                        {
+                            for (int i = 1; i < parameters.Count; i++)
+                            {
+                                typestr += ",System.Object";
+                            }
+                        }
+
+                        if (rttype != typeof(void))
+                            typestr += ",System.Object]";
+                        else
+                            typestr += "]";
+
+                        var func = Type.GetType(typestr); 
+
+
+                        MethodBuilder meth = ty.DefineMethod(methodname.Token.Text, MethodAttributes.Private | MethodAttributes.Static, rttype, TypeResolver.CreateTypeArray(typeof(Object),parameters.Count));
+
+                        var ig = meth.GetILGenerator();
+                        switch (body.Token.Type)
+                        {
+                            case TokenType.Statement:
+                                {
+                                    CompilerError[] e;
+
+                                    List<CompilerLocalBuilder> l2 = new List<CompilerLocalBuilder>();
+                                    l2.AddRange(locals);
+
+                                    HandleStmt(body, ig, params_in, ref l2, src, filename, doc, ty, out e);
+                                    break;
+                                }
+                            case TokenType.Statements:
+                                {
+                                    CompilerError[] e;
+
+                                    List<CompilerLocalBuilder> l2 = new List<CompilerLocalBuilder>();
+                                    l2.AddRange(locals);
+
+                                    foreach(ParseNode p in body.Nodes)
+                                        HandleStmt(p, ig, params_in, ref l2, src, filename, doc, ty, out e);
+
+                                    break;
+                                }
+                        }
+
+                        if (rttype == typeof(void))
+                            ig.Emit(OpCodes.Ret);
+
+                        gen.Emit(OpCodes.Ldftn, meth);
+
+                        //return func;
+
+                        
+                        return func;
+                    }
                 case TokenType.ArrayIndexExpr:
                     {
                         //Creating an array.
@@ -502,7 +602,7 @@ namespace Mizu3.Compiler
                     {
 
                         CompilerError[] ce = null;
-                        Type t = HandleMathExpr(pn, ref gen, ref locals, src,filename,out ce);
+                        Type t = HandleMathExpr(pn, ref gen, ref locals, src, filename, out ce);
 
                         ee = ce;
                         return t;
@@ -511,7 +611,7 @@ namespace Mizu3.Compiler
             return typeof(object);
         }
 
-        private static AssemblyBuilder GenerateAssembly(CompilerParameters info, Func<CompilerParameters,ISymbolDocumentWriter,ModuleBuilder,string,CompilerError[]> act, ref List<CompilerError> Errors)
+        private AssemblyBuilder GenerateAssembly(CompilerParameters info, Func<CompilerParameters,ISymbolDocumentWriter,ModuleBuilder,string,CompilerError[]> act, ref List<CompilerError> Errors)
         {
             if (Errors == null)
                 Errors = new List<CompilerError>();

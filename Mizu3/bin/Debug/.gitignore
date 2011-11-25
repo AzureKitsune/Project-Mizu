@@ -6,3 +6,7 @@
 /Mizu3.exe
 /Mizu3.pdb
 /*.exe
+/Example.pdb
+/Microsoft.Dynamic.dll
+/Microsoft.Scripting.Debugging.dll
+/Microsoft.Scripting.dll
