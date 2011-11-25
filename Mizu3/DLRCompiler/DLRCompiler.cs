@@ -99,13 +99,23 @@ namespace Mizu3.DLRCompiler
                                 break;
                             case TokenType.MathExpr:
                                 {
-                                    exp = HandleMathExpr(value, ref func, locals);
+                                    exp = HandleMathExpr(value, ref func);
                                     ty = exp.Type;
                                     break;
                                 }
                             case TokenType.FuncStatement:
                                 {
                                     //TODO: Implement this.
+                                    break;
+                                }
+                            case TokenType.ArrayIndexExpr:
+                                {
+                                    var inner = value.Nodes[1];
+                                    var e = HandleArgument(inner, ref func);
+
+                                    exp = Expression.NewArrayBounds(typeof(object), e);
+                                    ty = exp.Type;
+
                                     break;
                                 }
                             default:
@@ -125,6 +135,22 @@ namespace Mizu3.DLRCompiler
 
                         #endregion
                     }
+                case TokenType.ArrayAssignmentStatement:
+                    {
+                        var vari = func.Locals.Find(it => it.Name == pn.Nodes[0].Token.Text);
+                        var inner = pn.Nodes[1].Nodes[1];
+                        var e = HandleArgument(inner, ref func);
+
+                        var right = pn.Nodes[3];
+                        var rexp = HandleArgument(right, ref func);
+
+
+                        return Expression.Assign(
+                            Expression.ArrayAccess(vari, e),
+                            Expression.Convert(
+                                rexp,
+                                typeof(object)));
+                    }
                 case TokenType.OutStatement:
                     {
                         MethodInfo writeLine = null;
@@ -140,7 +166,7 @@ namespace Mizu3.DLRCompiler
                         }
                         else
                         {
-                            writeLine = typeof(Console).GetMethod("WriteLine", new Type[] {});
+                            writeLine = typeof(Console).GetMethod("WriteLine", new Type[] { });
                             return Expression.Call(writeLine);
                         }
                     }
@@ -151,7 +177,12 @@ namespace Mizu3.DLRCompiler
         private Expression HandleArgument(ParseNode value, ref LambdaBuilder func) { Type t = null; return HandleArgument(value, ref func, out t); }
         private Expression HandleArgument(ParseNode value, ref LambdaBuilder func, out Type ty)
         {
-            var inner = value.Nodes[0];
+
+            ParseNode inner = null;
+            if (value.Token.Type != TokenType.Argument)
+                inner = value;
+            else
+                inner = value.Nodes[0];
 
             ty = null;
 
@@ -176,8 +207,15 @@ namespace Mizu3.DLRCompiler
 
                     exp = Expression.Constant(double.Parse(inner.Token.Text));
                     break;
+                case TokenType.MathExpr:
+                    //Technically, this is not apart of argument.
+                    exp = HandleMathExpr(value, ref func);
+
+                    ty = exp.Type;
+                    break;
                 case TokenType.IDENTIFIER:
                     {
+                        //TODO: Make check if variable exist or not!
                         if (value.Nodes.Count == 1)
                         {
                             //If not an array value.
@@ -187,13 +225,18 @@ namespace Mizu3.DLRCompiler
                         else
                         {
                             //TODO: Implement getting array values.
+                            var vari = func.Locals.Find(it => it.Name == inner.Token.Text);
+                            //Expression.PropertyOrField(
+                            exp = Expression.ArrayIndex(vari, HandleArgument(value.Nodes[1].Nodes[1],ref func));
+
+                            ty = exp.Type;
                         }
                         return exp;
                     }
             }
             return exp;
         }
-        private Expression HandleMathExpr(ParseNode pn, ref LambdaBuilder func, List<ParameterExpression> locals)
+        private Expression HandleMathExpr(ParseNode pn, ref LambdaBuilder func)
         {
             var op = pn.Nodes[0];
             var left = pn.Nodes[1];
@@ -206,7 +249,7 @@ namespace Mizu3.DLRCompiler
             {
                 case TokenType.MathExpr:
                     {
-                        lexp = HandleMathExpr(left, ref func, locals);
+                        lexp = HandleMathExpr(left, ref func);
                         break;
                     }
                 case TokenType.NUMBER:
@@ -224,7 +267,7 @@ namespace Mizu3.DLRCompiler
             {
                 case TokenType.MathExpr:
                     {
-                        rexp = HandleMathExpr(right, ref func, locals);
+                        rexp = HandleMathExpr(right, ref func);
                         break;
                     }
                 case TokenType.NUMBER:
