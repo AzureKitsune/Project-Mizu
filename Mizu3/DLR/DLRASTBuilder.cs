@@ -15,20 +15,40 @@ namespace Mizu3.DLR
     using Microsoft.Scripting.Ast;
     using AstUtils = Microsoft.Scripting.Ast.Utils;
     using System.Reflection;
+    using System.IO;
 
     /// <summary>
     /// TODO: Update summary.
     /// </summary>
     public class DLRASTBuilder
     {
-        public static System.Linq.Expressions.Expression[] Parse(string filename, ref LambdaBuilder main)
+        public static System.Linq.Expressions.Expression[] Parse(System.IO.FileInfo file, ref LambdaBuilder main)
+        {
+            var code = "";
+            var str = new StreamReader(file.OpenRead());
+            try
+            {
+                code = str.ReadToEnd();
+            }
+            catch (Exception)
+            {
+
+            }
+            finally
+            {
+                str.Close();
+                str.Dispose();
+            }
+            return Parse(code, ref main);
+        }
+        public static System.Linq.Expressions.Expression[] Parse(string source, ref LambdaBuilder main)
         {
             var statements = new List<Expression>();
 
             {
                 var locals = new List<ParameterExpression>();
 
-                string src = System.IO.File.ReadAllText(filename);
+                string src = source;
                 var scanner = new Scanner();
                 var parser = new Parser(scanner);
                 var tree = parser.Parse(src);
@@ -46,15 +66,15 @@ namespace Mizu3.DLR
                 return statements.ToArray();
             }
         }
-        private static Expression HandleStmt(ParseNode pn, ref LambdaBuilder func, ref List<ParameterExpression> locals, string src, LabelTarget loop = null)
+        private static Expression HandleStmt(ParseNode pn, ref LambdaBuilder func, ref List<ParameterExpression> locals, string src, LabelTarget label = null)
         {
             switch (pn.Token.Type)
             {
                 case TokenType.LetStatement:
                     {
                         #region LET
-                        var start = pn.GetLineAndCol(src);
-                        var end = pn.GetLineAndColEnd(src);
+                        /*var start = pn.GetLineAndCol(src);
+                        var end = pn.GetLineAndColEnd(src); */
 
                         var nam = pn.Nodes[1].Token.Text;
                         Type ty = null;
@@ -78,7 +98,8 @@ namespace Mizu3.DLR
                             case TokenType.FuncStatement:
                                 {
                                     //TODO: Implement this.
-                                    
+                                    exp = HandleFunc(value, ref func);
+                                    ty = exp.Type;
                                     break;
                                 }
                             case TokenType.ArrayIndexExpr:
@@ -110,17 +131,19 @@ namespace Mizu3.DLR
                     }
                 case TokenType.BreakStatement:
                     {
-                        throw new NotImplementedException("Break Statements!");
-                        if (loop == null)
+                        //throw new NotImplementedException("Break Statements!");
+                        if (label == null)
                         {
                             //TODO: Make this an error.
                             return null;
                         }
                         else
-                            return Expression.Break(loop);
+                            return Expression.Break(label);
                     }
                 case TokenType.WhileStatement:
                     {
+                        #region While
+
                         Expression w = null;
 
                         var expr = pn.Nodes[2];
@@ -134,8 +157,11 @@ namespace Mizu3.DLR
                         var loopfunc = AstUtils.Lambda(typeof(void), "Loop");
                         loopfunc.Locals.AddRange(locals);
 
-                        var l = Expression.Label("LoopBreak");
-                        
+
+                        //loopfunc.
+
+                        var @l = Expression.Label("LoopBreak");
+
                         var bodyexp = new List<Expression>();
 
                         var bodylocs = new List<ParameterExpression>();
@@ -143,27 +169,34 @@ namespace Mizu3.DLR
 
                         if (body != null)
                             foreach (ParseNode p in body.Nodes)
-                                bodyexp.Add(HandleStmt(p.Nodes[0], ref loopfunc, ref bodylocs, src,l));
+                                bodyexp.Add(HandleStmt(p.Nodes[0], ref loopfunc, ref bodylocs, src, l));
 
-                        loopfunc.Body = Expression.Block(bodyexp); 
-                        
-                        w = AstUtils.While(op, loopfunc.MakeLambda(), Expression.Empty());
+                        loopfunc.Body = Expression.Block(bodylocs.ToArray(), bodyexp);
+
+
+
+                        w = AstUtils.While(op, loopfunc.Body, Expression.Empty(), @l, null);
 
 
                         return w;
+                        #endregion
                     }
                 case TokenType.VariableReassignmentStatement:
                     {
+                        #region Variable Assignment
                         var vari = func.Locals.Find(it => it.Name == pn.Nodes[0].Token.Text);
+                        if (vari == null)
+                            throw new Exception(pn.Nodes[0].Token.Text + " doesn't exist! TODO: Implement error handling!");
 
                         var inner = pn.Nodes.Find(it => it.Token.Type == TokenType.ArrayIndexExpr);
                         if (inner == null)
                         {
-                            //Normal variable assignment.
+                            //Normal variable assignmenEt.
 
                             var right = pn.Nodes.Find(it => it.Token.Type == TokenType.Argument || it.Token.Type == TokenType.FuncStatement);
 
-                            switch(right.Token.Type)
+
+                            switch (right.Token.Type)
                             {
                                 case TokenType.Argument:
                                     return Expression.Assign(vari,
@@ -190,6 +223,7 @@ namespace Mizu3.DLR
                                     rexp,
                                     typeof(object)));
                         }
+                        #endregion
                     }
                 case TokenType.OutStatement:
                     {
@@ -210,9 +244,48 @@ namespace Mizu3.DLR
                             return Expression.Call(writeLine);
                         }
                     }
+                case TokenType.RetStatement:
+                    {
+                        break;
+                    }
 
             }
             return null;
+        }
+        private static Expression HandleFunc(ParseNode value, ref LambdaBuilder func)
+        {
+            var inner = value.Nodes[0];
+            var name = value.Parent.Nodes[1];
+            var param = value.Nodes.FindAll(it => it.Token.Type == TokenType.Parameter);
+            var stmts = value.Nodes.Find(it => it.Token.Type == TokenType.Statement || it.Token.Type == TokenType.Statements);
+
+            var meth = AstUtils.Lambda(typeof(object), name.Token.Text);
+
+            foreach (ParseNode par in param)
+                HandleParameter(par, ref meth);
+
+            var locs = new List<ParameterExpression>();
+
+            if (stmts.Token.Type == TokenType.Statement)
+                meth.Body = HandleStmt(stmts.Nodes[0], ref meth, ref locs, "", null);
+            else
+            {
+                var lab = Expression.Label("Return");
+                var st = new List<Expression>();
+                foreach (var s in stmts.Nodes)
+                    st.Add(HandleStmt(s.Nodes[0], ref meth, ref locs, "", lab));
+
+
+                st.Add(Expression.Return(lab));
+                meth.Body = Expression.Block(st);
+            }
+
+
+            return meth.MakeLambda();
+        }
+        private static ParameterExpression HandleParameter(ParseNode value, ref LambdaBuilder func)
+        {
+            return func.Parameter(typeof(object), value.Nodes[0].Token.Text);
         }
         private static Expression HandleNonMathExpr(ParseNode value, Expression left, Expression right)
         {
@@ -335,6 +408,8 @@ namespace Mizu3.DLR
                     break;
                 case TokenType.IDENTIFIER:
                     lexp = func.Locals.Find(it => it.Name == left.Token.Text);
+                    if (lexp == null)
+                        lexp = func.Parameters.Find(it => it.Name == left.Token.Text);
                     break;
             }
 
@@ -353,6 +428,8 @@ namespace Mizu3.DLR
                     break;
                 case TokenType.IDENTIFIER:
                     rexp = func.Locals.Find(it => it.Name == right.Token.Text);
+                    if (rexp == null)
+                        rexp = func.Parameters.Find(it => it.Name == right.Token.Text);
                     break;
             }
 

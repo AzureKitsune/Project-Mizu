@@ -1,4 +1,4 @@
-﻿let x = 5;
+﻿/*let x = 5;
 let y = 6;
 let z = - + x y 2;
 out z;
@@ -15,15 +15,25 @@ out myArray[0];
 out myArray[1];
 out myArray[2];
 out myArray[3]; 
-out myArray[- 5 1];
+out myArray[- 5 1]; */
 
-/*let fib = fun(n) -> {
-	out "Test from function!";
-};*/
+let fib = fun(n) -> {
+	let x = [+ n 1];
+	x[0] = 0;
+	x[1] = 1;
+	
+	let i = 2;
+	while(i != n) {
+		x[i] = x[- i 1] + x[- i 2];
+		i++;
+	}
+	return x;
+};
 
-let this = true;
-while(this != false) {
-	out "LOL";
-	let w = 0;
-	this = true;
+/*let this = "string";
+while(this != "pie") {
+	out "Test";
+	this = "pie";
+	break;
 }
+out this; */
