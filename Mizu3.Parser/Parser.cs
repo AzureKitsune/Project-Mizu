@@ -518,6 +518,22 @@ namespace Mizu3.Parser
             node.Nodes.Add(n);
 
             
+            tok = scanner.Scan(TokenType.COLON);
+            if (tok.Type != TokenType.COLON)
+                tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.COLON.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
+            n = node.CreateNode(tok, tok.ToString() );
+            node.Token.UpdateRange(tok);
+            node.Nodes.Add(n);
+
+            
+            tok = scanner.Scan(TokenType.IDENTIFIER);
+            if (tok.Type != TokenType.IDENTIFIER)
+                tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.IDENTIFIER.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));
+            n = node.CreateNode(tok, tok.ToString() );
+            node.Token.UpdateRange(tok);
+            node.Nodes.Add(n);
+
+            
             tok = scanner.Scan(TokenType.ARROW);
             if (tok.Type != TokenType.ARROW)
                 tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.ARROW.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));

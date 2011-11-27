@@ -158,6 +158,14 @@ namespace Mizu3.DLR
 
                                                 break;
                                             }
+                                        case TokenType.IterStatement:
+                                            {
+                                                var iter = pn.Nodes[3];
+                                                exp = HandleIterStatement(iter, ref func, src);
+
+                                                ty = exp.Type;
+                                                break;
+                                            }
                                         default:
                                             ty = typeof(object);
                                             break;
@@ -347,6 +355,10 @@ namespace Mizu3.DLR
                                     #endregion
                                 break;
                             case TokenType.ARROW:
+                                /*var right = pn.Nodes.Find(it => it.Token.Type == TokenType.FuncCallStatement);
+                                return Expression.Assign(vari,
+                                    HandleFuncCall(pn.Nodes[3], ref func, src); */
+                                throw new NotImplementedException("Assigning anonymous functions to an already assigned variable.");
                                 break;
                         }
                         break;
@@ -372,6 +384,32 @@ namespace Mizu3.DLR
                         }
                     }
 
+            }
+            return null;
+        }
+        private static Expression HandleIterStatement(ParseNode value, ref LambdaBuilder func, string src = "")
+        {
+            throw new NotImplementedException("Iter Statements are not supported at this time.");
+
+
+            var body = value.Nodes[value.Nodes.Count - 1];
+
+            var l = value.Nodes.IndexOf(
+                    value.Nodes.Find(it => it.Token.Type == TokenType.OPENBR));
+            var r = value.Nodes.IndexOf(
+                    value.Nodes.Find(it => it.Token.Type == TokenType.CLOSEBR));
+            var parms = value.Nodes.GetRange(l + 1,r - l -1);
+
+            if (parms.Count != 3)
+            {
+                //Just an indentifier
+            }
+            else
+            {
+                //Range from x to y.
+                var x = parms[0];
+                var y = parms[2];
+                //Expression.NewArrayInit(typeof(object),
             }
             return null;
         }

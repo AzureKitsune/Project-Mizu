@@ -1,4 +1,4 @@
-﻿let x = 5;
+﻿/* let x = 5;
 let y = 6;
 let z = - + x y 2;
 out z;
@@ -15,7 +15,7 @@ out myArray[0];
 out myArray[1];
 out myArray[2];
 out myArray[3]; 
-out myArray[- 5 1];
+out myArray[- 5 1]; */
 
 let fib = fun(int : n) -> {
 	let x = <int>[+ n 1];
@@ -30,9 +30,12 @@ let fib = fun(int : n) -> {
 	return x[n];
 };
 
-let res -> fib(2);
+/* let res -> fib(40);
 
-out res;
+out res; */
+
+let seq = itr [2 : 10] : y -> fib(y);
+out seq[7];
 
 /*let this = "string";
 while(this != "pie") {

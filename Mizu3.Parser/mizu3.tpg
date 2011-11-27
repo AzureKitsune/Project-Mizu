@@ -74,7 +74,7 @@ Statement -> (LetStatement|ImportStatement|OutStatement|TryCatchStatement|RetSta
 ImportStatement -> IMPORT TYPE (FROM STRING)? SEMICOLON;
 VariableReassignmentStatement -> IDENTIFIER (ArrayIndexExpr)? (EQUAL (MathExpr|Argument|FuncStatement) SEMICOLON| ARROW FuncCallStatement);
 LetStatement -> LET IDENTIFIER (EQUAL (Argument|IterStatement|FuncStatement|ObjectCreatetion|ArrayIndexExpr|MathExpr) SEMICOLON|ARROW FuncCallStatement);
-IterStatement -> ITER OPENBR ((NUMBER|FLOAT) COLON (NUMBER|FLOAT|IDENTIFIER)|IDENTIFIER) CLOSEBR ARROW (FuncCall|BRCKOPEN Statements BRCKCLOSE);
+IterStatement -> ITER OPENBR ((NUMBER|FLOAT) COLON (NUMBER|FLOAT|IDENTIFIER)|IDENTIFIER) CLOSEBR COLON IDENTIFIER ARROW (FuncCall|BRCKOPEN Statements BRCKCLOSE);
 FuncStatement -> FUNC BROPEN (Parameter (COMMA Parameter)*)? BRCLOSE ARROW (Statement | BRCKOPEN Statements BRCKCLOSE);
 TypeFuncDeclartion -> IDENTIFIER IDENTIFIER EQUAL FuncStatement;
 RetStatement -> RETURN (Argument)? SEMICOLON;
