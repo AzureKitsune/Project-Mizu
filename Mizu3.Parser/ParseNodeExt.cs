@@ -21,8 +21,12 @@ namespace Mizu3.Parser
         {
             // http://www.codeproject.com/Messages/3852786/Re-ParseError-line-numbers-always-0.aspx
 
+
             line = 1;
             col = 0;
+
+            if (src == "")
+                return;
 
             for (int i = 0; i < pos - 1; i++)
             {

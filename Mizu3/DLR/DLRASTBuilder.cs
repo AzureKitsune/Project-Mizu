@@ -44,7 +44,7 @@ namespace Mizu3.DLR
         public static System.Linq.Expressions.Expression[] Parse(string source, ref LambdaBuilder main)
         {
             var statements = new List<Expression>();
-
+            var errors = new List<DLRASTSyntaxException>();
             {
                 var locals = new List<ParameterExpression>();
 
@@ -52,17 +52,38 @@ namespace Mizu3.DLR
                 var scanner = new Scanner();
                 var parser = new Parser(scanner);
                 var tree = parser.Parse(src);
-
-                var stmts = tree.Nodes[0].Nodes[0].Nodes;
-
-                foreach (ParseNode pn in stmts)
+                if (tree.Errors.Count > 0)
                 {
-                    var x = HandleStmt(pn.Nodes[0], ref main, ref locals, src);
-                    if (x != null)
-                        statements.Add(x); //TODO: Handle this better
-
+                    foreach (ParseError pe in tree.Errors)
+                        errors.Add(new DLRASTSyntaxException(pe.Message, pe.Line, pe.Column));
                 }
-                //statements.Add(Expressions.
+                else
+                {
+                    var stmts = tree.Nodes[0].Nodes[0].Nodes;
+
+                    foreach (ParseNode pn in stmts)
+                    {
+                        try
+                        {
+                            var x = HandleStmt(pn.Nodes[0], ref main, ref locals, src);
+                            if (x != null)
+                                statements.Add(x); //TODO: Handle this better
+                        }
+                        catch (DLRASTSyntaxException dex)
+                        {
+                            errors.Add(dex);
+                        }
+                        catch (Exception ex)
+                        {
+                            errors.Add(new DLRASTSyntaxException("An inner exception has occured.", 0, 0, ex));
+                        }
+
+                    }
+                }
+
+                if (errors.Count > 0)
+                    throw new AggregateException(errors.ToArray());
+                
                 return statements.ToArray();
             }
         }
@@ -77,44 +98,82 @@ namespace Mizu3.DLR
                         var end = pn.GetLineAndColEnd(src); */
 
                         var nam = pn.Nodes[1].Token.Text;
+
+                        if (func.Locals.Find(it => it.Name == nam) != null)
+                        {
+                            var cord = pn.GetLineAndCol(src);
+                            throw new DLRASTSyntaxException(
+                                String.Format("The '{0}' variable already exist in this scope!", nam)
+                                , cord.Line, cord.Col);
+                        }
+
                         Type ty = null;
 
                         Expression exp = null;
 
-                        var value = pn.Nodes[3];
-                        switch (value.Token.Type)
+                        switch (pn.Nodes[2].Token.Type)
                         {
-                            case TokenType.Argument:
+                            case TokenType.EQUAL:
                                 {
-                                    exp = HandleArgument(value, ref func, out ty);
-                                }
-                                break;
-                            case TokenType.MathExpr:
-                                {
-                                    exp = HandleMathExpr(value, ref func);
-                                    ty = exp.Type;
-                                    break;
-                                }
-                            case TokenType.FuncStatement:
-                                {
-                                    //TODO: Implement this.
-                                    exp = HandleFunc(value, ref func);
-                                    ty = exp.Type;
-                                    break;
-                                }
-                            case TokenType.ArrayIndexExpr:
-                                {
-                                    var inner = value.Nodes[1];
-                                    var e = HandleArgument(inner, ref func);
+                                    #region Anything but a function call
+                                    var value = pn.Nodes[3];
+                                    switch (value.Token.Type)
+                                    {
+                                        case TokenType.Argument:
+                                            {
+                                                exp = HandleArgument(value, src, ref func, out ty);
+                                            }
+                                            break;
+                                        case TokenType.MathExpr:
+                                            {
+                                                exp = HandleMathExpr(value, ref func);
+                                                ty = exp.Type;
+                                                break;
+                                            }
+                                        case TokenType.FuncStatement:
+                                            {
+                                                //TODO: Implement this.
+                                                exp = HandleFunc(value, ref func);
+                                                ty = exp.Type;
+                                                break;
+                                            }
+                                        case TokenType.ArrayIndexExpr:
+                                            {
+                                                //For creating arrays.
+                                                var inner = value.Nodes.Find(it => it.Token.Type == TokenType.MathExpr || it.Token.Type == TokenType.IDENTIFIER || it.Token.Type == TokenType.NUMBER);
+                                                var e = HandleArgument(inner, src, ref func);
 
-                                    exp = Expression.NewArrayBounds(typeof(object), e);
-                                    ty = exp.Type;
+                                                var gentype = value.Nodes.Find(it => it.Token.Type == TokenType.GenericTypeIdentifier);
 
+                                                if (gentype == null)
+                                                    exp = Expression.NewArrayBounds(typeof(object), e); //Creates the default array. Object[] with the size of 'e'.
+                                                else
+                                                {
+                                                    string requested_type = gentype.Nodes[1].Token.Text;
+                                                    var t = DLRTypeResolver.ResolveType(requested_type);
+
+                                                    exp = Expression.NewArrayBounds(t, e);
+                                                }
+                                                ty = exp.Type;
+
+                                                break;
+                                            }
+                                        default:
+                                            ty = typeof(object);
+                                            break;
+                                    }
+                                    break;
+                                    #endregion
+                                }
+                            case TokenType.ARROW:
+                                {
+                                    #region Function calls
+                                    exp = HandleFuncCall(pn.Nodes[3], ref func, src);
+
+                                    ty = exp.Type;
+                                    #endregion
                                     break;
                                 }
-                            default:
-                                ty = typeof(object);
-                                break;
                         }
 
                         //TODO: Check if variable exist!
@@ -135,10 +194,38 @@ namespace Mizu3.DLR
                         if (label == null)
                         {
                             //TODO: Make this an error.
-                            return null;
+                            var cord = pn.GetLineAndCol(src);
+                            throw new DLRASTSyntaxException("Break is invalid in this context.", cord.Line, cord.Col);
                         }
                         else
                             return Expression.Break(label);
+                    }
+                case TokenType.RetStatement:
+                    {
+                        if (label == null)
+                        {
+                            //TODO: Make this an error.
+                            var cord = pn.GetLineAndCol(src);
+                            throw new DLRASTSyntaxException("Return is invalid in this context.", cord.Line, cord.Col);
+                        }
+                        else
+                        {
+                            if (pn.Nodes.Count > 1)
+                            {
+                                var id = pn.Nodes[1];
+                                var exp = HandleArgument(id, src, ref func);
+                                return Expression.Return(label, exp);
+                            }
+                            else
+                                return Expression.Return(label);
+                        }
+                    }
+                case TokenType.FuncCallStatement:
+                    {
+                        var call = pn.Nodes[0];
+                        var exp = HandleFuncCall(call, ref func, src);
+                        return exp;
+                        break;
                     }
                 case TokenType.WhileStatement:
                     {
@@ -150,8 +237,8 @@ namespace Mizu3.DLR
 
                         var body = pn.Nodes.Find(it => it.Token.Type == TokenType.Statements); //Might be null.
 
-                        var lexp = HandleArgument(expr.Nodes[0], ref func);
-                        var rexp = HandleArgument(expr.Nodes[2], ref func);
+                        var lexp = HandleArgument(expr.Nodes[0], src, ref func);
+                        var rexp = HandleArgument(expr.Nodes[2], src, ref func);
                         var op = HandleNonMathExpr(expr.Nodes[1], lexp, rexp);
 
                         var loopfunc = AstUtils.Lambda(typeof(void), "Loop");
@@ -169,7 +256,11 @@ namespace Mizu3.DLR
 
                         if (body != null)
                             foreach (ParseNode p in body.Nodes)
-                                bodyexp.Add(HandleStmt(p.Nodes[0], ref loopfunc, ref bodylocs, src, l));
+                            { 
+                                var st = HandleStmt(p.Nodes[0], ref loopfunc, ref bodylocs, src, l);
+                                if (st != null)
+                                    bodyexp.Add(st);
+                            }
 
                         loopfunc.Body = Expression.Block(bodylocs.ToArray(), bodyexp);
 
@@ -186,43 +277,78 @@ namespace Mizu3.DLR
                         #region Variable Assignment
                         var vari = func.Locals.Find(it => it.Name == pn.Nodes[0].Token.Text);
                         if (vari == null)
-                            throw new Exception(pn.Nodes[0].Token.Text + " doesn't exist! TODO: Implement error handling!");
-
-                        var inner = pn.Nodes.Find(it => it.Token.Type == TokenType.ArrayIndexExpr);
-                        if (inner == null)
                         {
-                            //Normal variable assignmenEt.
-
-                            var right = pn.Nodes.Find(it => it.Token.Type == TokenType.Argument || it.Token.Type == TokenType.FuncStatement);
-
-
-                            switch (right.Token.Type)
-                            {
-                                case TokenType.Argument:
-                                    return Expression.Assign(vari,
-                                         HandleArgument(right, ref func));
-                                case TokenType.FuncStatement:
-                                    throw new NotImplementedException("Func statements in variable reassignment statements!");
-                            }
-
-                            return null; //Satisfy the compiler.
+                            var cord = pn.GetLineAndCol(src);
+                            throw new DLRASTSyntaxException(
+                                String.Format("The '{0}' variable doesn't exist in this scope!", pn.Token.Text)
+                                , cord.Line, cord.Col);
                         }
-                        else
+
+                        var oper = pn.Nodes.Find(it => it.Token.Type == TokenType.EQUAL || it.Token.Type == TokenType.ARROW);
+
+                        switch (oper.Token.Type)
                         {
-                            //Array assignment
+                            case TokenType.EQUAL:
+                                {
+                                    #region Anything but function calls
+                                    var inner = pn.Nodes.Find(it => it.Token.Type == TokenType.ArrayIndexExpr);
+                                    if (inner == null)
+                                    {
+                                        //Normal variable assignmenet.
 
-                            var e = HandleArgument(inner.Nodes[1], ref func);
-
-                            var right = pn.Nodes[3];
-                            var rexp = HandleArgument(right, ref func);
+                                        var right = pn.Nodes.Find(it => it.Token.Type == TokenType.Argument || it.Token.Type == TokenType.FuncStatement);
 
 
-                            return Expression.Assign(
-                                Expression.ArrayAccess(vari, e),
-                                Expression.Convert(
-                                    rexp,
-                                    typeof(object)));
+                                        switch (right.Token.Type)
+                                        {
+                                            case TokenType.Argument:
+                                                return Expression.Assign(vari,
+                                                     HandleArgument(right, src, ref func));
+                                            case TokenType.FuncStatement:
+                                                throw new NotImplementedException("Func statements in variable reassignment statements!");
+                                        }
+
+                                        return null; //Satisfy the compiler.
+                                    }
+                                    else
+                                    {
+                                        //Array assignment
+
+                                        var e = HandleArgument(inner.Nodes[1], src, ref func);
+
+                                        ParseNode[] allright = new Lazy<ParseNode[]>(new Func<ParseNode[]>(() =>
+                                        {
+                                            int indr = pn.Nodes.IndexOf(
+                                                 pn.Nodes.Find(it => it.Token.Type == TokenType.EQUAL));
+                                            return pn.Nodes.GetRange(indr + 1, pn.Nodes.Count - indr - 1).ToArray();
+                                        })).Value;
+                                        var right = allright[0];
+                                        var rexp = HandleArgument(right, src, ref func);
+
+                                        Expression arrexpr = null;
+
+                                        var arryty = vari.Type.GetElementType();
+                                        if (rexp.Type != arryty)
+                                        {
+                                            arrexpr = Expression.Convert(
+                                                rexp,
+                                                arryty);
+                                        }
+                                        else
+                                        {
+                                            arrexpr = rexp;
+                                        }
+
+                                        return Expression.Assign(
+                                            Expression.ArrayAccess(vari, e), arrexpr);
+                                    }
+                                }
+                                    #endregion
+                                break;
+                            case TokenType.ARROW:
+                                break;
                         }
+                        break;
                         #endregion
                     }
                 case TokenType.OutStatement:
@@ -233,7 +359,7 @@ namespace Mizu3.DLR
                         {
                             var n = pn.Nodes[1];
                             Type ty = null;
-                            var exp = HandleArgument(n, ref func, out ty);
+                            var exp = HandleArgument(n, src, ref func, out ty);
 
                             writeLine = typeof(Console).GetMethod("WriteLine", new Type[] { ty });
                             return Expression.Call(writeLine, exp);
@@ -244,12 +370,36 @@ namespace Mizu3.DLR
                             return Expression.Call(writeLine);
                         }
                     }
-                case TokenType.RetStatement:
-                    {
-                        break;
-                    }
 
             }
+            return null;
+        }
+        private static Expression HandleFuncCall(ParseNode value, ref LambdaBuilder func, string src = "")
+        {
+            var funccall = value.Nodes[0];
+
+            var name = funccall.Nodes[0];
+            var nam = GetVariable(name, ref func, src, true,false);
+
+            var args = funccall.Nodes.FindAll(it => it.Token.Type == TokenType.Argument);
+
+            if (nam != null)
+            {
+                var arglist = new List<Expression>();
+                foreach (var a in args)
+                    arglist.Add(HandleArgument(a, src, ref func));
+
+                if (arglist.Count > 0)
+                    return Expression.Invoke(nam, arglist.ToArray());
+                else
+                    return Expression.Invoke(nam);
+            }
+            else
+            {
+                //resolve .net type
+                throw new NotImplementedException(".NET Type Resolution.");
+            }
+
             return null;
         }
         private static Expression HandleFunc(ParseNode value, ref LambdaBuilder func)
@@ -273,10 +423,13 @@ namespace Mizu3.DLR
                 var lab = Expression.Label("Return");
                 var st = new List<Expression>();
                 foreach (var s in stmts.Nodes)
-                    st.Add(HandleStmt(s.Nodes[0], ref meth, ref locs, "", lab));
+                {
+                    var val = HandleStmt(s.Nodes[0], ref meth, ref locs, "", @lab);
+                    st.Add((val == null ? Expression.Empty() : val));
+                }
 
-
-                st.Add(Expression.Return(lab));
+                st.Add(Expression.Label(lab));
+                //st.Add(Expression.Return(lab));
                 meth.Body = Expression.Block(st);
             }
 
@@ -285,7 +438,16 @@ namespace Mizu3.DLR
         }
         private static ParameterExpression HandleParameter(ParseNode value, ref LambdaBuilder func)
         {
-            return func.Parameter(typeof(object), value.Nodes[0].Token.Text);
+            var type = value.Nodes.Find(it => it.Token.Type == TokenType.TYPE);
+            var parname =  value.Nodes.Find(it => it.Token.Type == TokenType.IDENTIFIER);
+            if (type == null)
+                return func.Parameter(
+                    typeof(object), 
+                    parname.Token.Text);
+            else
+                return func.Parameter(
+                    DLRTypeResolver.ResolveType(type.Token.Text),
+                    parname.Token.Text);
         }
         private static Expression HandleNonMathExpr(ParseNode value, Expression left, Expression right)
         {
@@ -300,8 +462,8 @@ namespace Mizu3.DLR
             }
             return null;
         }
-        private static Expression HandleArgument(ParseNode value, ref LambdaBuilder func) { Type t = null; return HandleArgument(value, ref func, out t); }
-        private static Expression HandleArgument(ParseNode value, ref LambdaBuilder func, out Type ty)
+        private static Expression HandleArgument(ParseNode value, string src, ref LambdaBuilder func) { Type t = null; return HandleArgument(value, src, ref func, out t); }
+        private static Expression HandleArgument(ParseNode value, string src, ref LambdaBuilder func, out Type ty)
         {
 
             ParseNode inner = null;
@@ -342,18 +504,25 @@ namespace Mizu3.DLR
                 case TokenType.IDENTIFIER:
                     {
                         //TODO: Make check if variable exist or not!
-                        if (value.Nodes.Count == 1)
+                        if (value.Nodes.Find(it => it.Token.Type == TokenType.ArrayIndexExpr) == null)
                         {
                             //If not an array value.
-                            exp = func.Locals.Find(it => it.Name == inner.Token.Text);
+
+                            exp = GetVariable(inner, ref func, src);
+
                             ty = exp.Type;
                         }
                         else
                         {
                             //TODO: Implement getting array values.
-                            var vari = func.Locals.Find(it => it.Name == inner.Token.Text);
-                            //Expression.PropertyOrField(
-                            exp = Expression.ArrayIndex(vari, HandleArgument(value.Nodes[1].Nodes[1], ref func));
+                            var vari = GetVariable(inner, ref func, src);
+                            var index = value.Nodes.Find(it => it.Token.Type == TokenType.ArrayIndexExpr);
+
+                            var indexer = HandleArgument(
+                                index.Nodes[1],
+                                src, ref func);
+                            exp = Expression.ArrayIndex(vari, 
+                                   indexer);
 
                             ty = exp.Type;
                         }
@@ -387,8 +556,8 @@ namespace Mizu3.DLR
         private static Expression HandleMathExpr(ParseNode pn, ref LambdaBuilder func)
         {
             var op = pn.Nodes[0];
-            var left = pn.Nodes[1];
-            var right = pn.Nodes[2];
+            var left = pn.Nodes.FindAll(it => it.Token.Type != TokenType.ArrayIndexExpr && it != op)[0];
+            var right = pn.Nodes.FindAll(it => it.Token.Type != TokenType.ArrayIndexExpr && it != op)[1];
 
             Expression lexp = null;
             Expression rexp = null;
@@ -407,9 +576,16 @@ namespace Mizu3.DLR
                     lexp = Expression.Constant(double.Parse(left.Token.Text));
                     break;
                 case TokenType.IDENTIFIER:
-                    lexp = func.Locals.Find(it => it.Name == left.Token.Text);
-                    if (lexp == null)
-                        lexp = func.Parameters.Find(it => it.Name == left.Token.Text);
+                    lexp = GetVariable(left, ref func, "");
+                    if (lexp.Type.IsArray)
+                    {
+                        var larr = pn.Nodes.FindAll(it => it.Token.Type == TokenType.ArrayIndexExpr && it != op)[0];
+                        var len = larr.Nodes[1];
+                        var le = HandleArgument(len, "", ref func);
+
+                        lexp = Expression.ArrayAccess(lexp,
+                            le);
+                    }
                     break;
             }
 
@@ -427,9 +603,16 @@ namespace Mizu3.DLR
                     rexp = Expression.Constant(double.Parse(right.Token.Text));
                     break;
                 case TokenType.IDENTIFIER:
-                    rexp = func.Locals.Find(it => it.Name == right.Token.Text);
-                    if (rexp == null)
-                        rexp = func.Parameters.Find(it => it.Name == right.Token.Text);
+                    rexp = GetVariable(right, ref func, "");
+                    if (rexp.Type.IsArray)
+                    {
+                        var rarr = pn.Nodes.FindAll(it => it.Token.Type == TokenType.ArrayIndexExpr && it != op)[1];
+                        var ren = rarr.Nodes[1];
+                        var re = HandleArgument(ren, "", ref func);
+
+                        rexp = Expression.ArrayAccess(rexp,
+                            re);
+                    }
                     break;
             }
 
@@ -453,6 +636,28 @@ namespace Mizu3.DLR
                     }
             }
             return Expression.Constant(0);
+        }
+        private static DLRASTSyntaxException VariableDoesntExist(ParseNode pn, string src)
+        {
+            var cord = pn.GetLineAndCol(src);
+            return new DLRASTSyntaxException(
+                                    String.Format("The '{0}' variable doesn't exist in this scope!", pn.Token.Text)
+                                    , cord.Line, cord.Col);
+        }
+        private static ParameterExpression GetVariable(ParseNode pn, ref LambdaBuilder func, string src = "", bool justlocal = false, bool throwErr = true)
+        {
+            var exp = func.Locals.Find(it => it.Name == pn.Token.Text);
+
+            if (!justlocal)
+                exp = (exp == null ? func.Parameters.Find(it => it.Name == pn.Token.Text) : exp);
+
+            if (exp == null)
+                if (throwErr)
+                    throw VariableDoesntExist(pn, src);
+                else
+                    return null;
+            else
+                return exp;
         }
     }
 }

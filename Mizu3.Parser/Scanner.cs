@@ -38,11 +38,11 @@ namespace Mizu3.Parser
             SkipList.Add(TokenType.COMMENTBLOCK);
             SkipList.Add(TokenType.COMMENTLINE);
 
-            regex = new Regex(@"(?!(itr|fun|let|new|import|from|out|ret|try|cat(ch)?|while|true|false|break))[a-zA-Z][a-zA-Z0-9_]*", RegexOptions.Compiled);
+            regex = new Regex(@"(?!(itr|fun|let|new|import|from|out|ret(urn)?|try|cat(ch)?|while|true|false|break|int|str|obj))[a-zA-Z][a-zA-Z0-9_]*", RegexOptions.Compiled);
             Patterns.Add(TokenType.IDENTIFIER, regex);
             Tokens.Add(TokenType.IDENTIFIER);
 
-            regex = new Regex(@"(?!(itr|fun|let|new|import|from|out|ret|try|cat(ch)?|while|true|false|break))\b[a-zA-Z0-9_]*((\.[a-zA-Z0-9_]*))*\b", RegexOptions.Compiled);
+            regex = new Regex(@"(?!(itr|fun|let|new|import|from|out|ret(urn)?|try|cat(ch)?|while|true|false|break))\b[a-zA-Z0-9_]*((\.[a-zA-Z0-9_]*))*\b", RegexOptions.Compiled);
             Patterns.Add(TokenType.TYPE, regex);
             Tokens.Add(TokenType.TYPE);
 
@@ -158,7 +158,7 @@ namespace Mizu3.Parser
             Patterns.Add(TokenType.CLOSEBR, regex);
             Tokens.Add(TokenType.CLOSEBR);
 
-            regex = new Regex(@"ret", RegexOptions.Compiled);
+            regex = new Regex(@"ret(urn)?", RegexOptions.Compiled);
             Patterns.Add(TokenType.RETURN, regex);
             Tokens.Add(TokenType.RETURN);
 
@@ -371,55 +371,56 @@ namespace Mizu3.Parser
             Boolean = 24,
             MathExpr= 25,
             OPERATOR= 26,
+            GenericTypeIdentifier= 27,
 
             //Terminal tokens:
-            IDENTIFIER= 27,
-            TYPE    = 28,
-            LET     = 29,
-            ITER    = 30,
-            STRING  = 31,
-            EMPTYLINE= 32,
-            WHITESPACE= 33,
-            TAB     = 34,
-            NEWLINE = 35,
-            COMMENTBLOCK= 36,
-            COMMENTLINE= 37,
-            EOF     = 38,
-            EQUAL   = 39,
-            PLUS    = 40,
-            MINUS   = 41,
-            MULTI   = 42,
-            DIV     = 43,
-            SEMICOLON= 44,
-            NUMBER  = 45,
-            FLOAT   = 46,
-            ARROW   = 47,
-            BRCKOPEN= 48,
-            BRCKCLOSE= 49,
-            BROPEN  = 50,
-            BRCLOSE = 51,
-            COMMA   = 52,
-            FUNC    = 53,
-            COLON   = 54,
-            OPENBR  = 55,
-            CLOSEBR = 56,
-            RETURN  = 57,
-            NEW     = 58,
-            IMPORT  = 59,
-            FROM    = 60,
-            OUT     = 61,
-            HASH    = 62,
-            TRY     = 63,
-            CATCH   = 64,
-            WHILE   = 65,
-            GT      = 66,
-            LT      = 67,
-            GTE     = 68,
-            LTE     = 69,
-            NOTEQUAL= 70,
-            TRUE    = 71,
-            FALSE   = 72,
-            BREAK   = 73
+            IDENTIFIER= 28,
+            TYPE    = 29,
+            LET     = 30,
+            ITER    = 31,
+            STRING  = 32,
+            EMPTYLINE= 33,
+            WHITESPACE= 34,
+            TAB     = 35,
+            NEWLINE = 36,
+            COMMENTBLOCK= 37,
+            COMMENTLINE= 38,
+            EOF     = 39,
+            EQUAL   = 40,
+            PLUS    = 41,
+            MINUS   = 42,
+            MULTI   = 43,
+            DIV     = 44,
+            SEMICOLON= 45,
+            NUMBER  = 46,
+            FLOAT   = 47,
+            ARROW   = 48,
+            BRCKOPEN= 49,
+            BRCKCLOSE= 50,
+            BROPEN  = 51,
+            BRCLOSE = 52,
+            COMMA   = 53,
+            FUNC    = 54,
+            COLON   = 55,
+            OPENBR  = 56,
+            CLOSEBR = 57,
+            RETURN  = 58,
+            NEW     = 59,
+            IMPORT  = 60,
+            FROM    = 61,
+            OUT     = 62,
+            HASH    = 63,
+            TRY     = 64,
+            CATCH   = 65,
+            WHILE   = 66,
+            GT      = 67,
+            LT      = 68,
+            GTE     = 69,
+            LTE     = 70,
+            NOTEQUAL= 71,
+            TRUE    = 72,
+            FALSE   = 73,
+            BREAK   = 74
     }
 
     public class Token

@@ -14,7 +14,7 @@ namespace Mizu3.Compiler
     /// <summary>
     /// TODO: Update summary.
     /// </summary>
-    public static class TypeResolver
+    public class TypeResolver
     {
         public static bool IsValueType(Type typ)
         {

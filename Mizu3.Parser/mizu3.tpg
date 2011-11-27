@@ -17,8 +17,8 @@
 <% @TinyPG Namespace="Mizu3.Parser" Language="C#" OutputPath="C:\\Users\\alex\\Documents\\visual studio 2010\\Projects\\Mizu3\\Mizu3.Parser\\" %>
 
 //IDENTIFIER -> @"(?!(uses|var|if|for|handle|while|true|false))[a-zA-Z][a-zA-Z0-9_]*";
-IDENTIFIER -> @"(?!(itr|fun|let|new|import|from|out|ret|try|cat(ch)?|while|true|false|break))[a-zA-Z][a-zA-Z0-9_]*";
-TYPE -> @"(?!(itr|fun|let|new|import|from|out|ret|try|cat(ch)?|while|true|false|break))\b[a-zA-Z0-9_]*((\.[a-zA-Z0-9_]*))*\b";
+IDENTIFIER -> @"(?!(itr|fun|let|new|import|from|out|ret(urn)?|try|cat(ch)?|while|true|false|break|int|str|obj))[a-zA-Z][a-zA-Z0-9_]*";
+TYPE -> @"(?!(itr|fun|let|new|import|from|out|ret(urn)?|try|cat(ch)?|while|true|false|break))\b[a-zA-Z0-9_]*((\.[a-zA-Z0-9_]*))*\b";
 LET -> @"let";
 ITER -> @"itr";
 [Color(255, 0, 0)] STRING -> @"\"".+?\""";
@@ -47,7 +47,7 @@ FUNC -> @"fun";
 COLON -> @"\:";
 OPENBR -> @"\[";
 CLOSEBR -> @"\]";
-RETURN -> @"ret";
+RETURN -> @"ret(urn)?";
 NEW -> @"new";
 IMPORT -> @"import";
 FROM -> @"from";
@@ -72,8 +72,8 @@ Start -> (PragmaStatement)* (Statements)? EOF;
 Statements -> Statement+;
 Statement -> (LetStatement|ImportStatement|OutStatement|TryCatchStatement|RetStatement|WhileStatement|BreakStatement|FuncCallStatement|VariableReassignmentStatement);
 ImportStatement -> IMPORT TYPE (FROM STRING)? SEMICOLON;
-VariableReassignmentStatement -> IDENTIFIER (ArrayIndexExpr)? EQUAL (Argument|FuncStatement) SEMICOLON;
-LetStatement -> LET IDENTIFIER EQUAL (Argument|IterStatement|FuncStatement|ObjectCreatetion|ArrayIndexExpr|MathExpr) SEMICOLON;
+VariableReassignmentStatement -> IDENTIFIER (ArrayIndexExpr)? (EQUAL (MathExpr|Argument|FuncStatement) SEMICOLON| ARROW FuncCallStatement);
+LetStatement -> LET IDENTIFIER (EQUAL (Argument|IterStatement|FuncStatement|ObjectCreatetion|ArrayIndexExpr|MathExpr) SEMICOLON|ARROW FuncCallStatement);
 IterStatement -> ITER OPENBR ((NUMBER|FLOAT) COLON (NUMBER|FLOAT|IDENTIFIER)|IDENTIFIER) CLOSEBR ARROW (FuncCall|BRCKOPEN Statements BRCKCLOSE);
 FuncStatement -> FUNC BROPEN (Parameter (COMMA Parameter)*)? BRCLOSE ARROW (Statement | BRCKOPEN Statements BRCKCLOSE);
 TypeFuncDeclartion -> IDENTIFIER IDENTIFIER EQUAL FuncStatement;
@@ -89,12 +89,12 @@ Expr -> Argument (GT|LT|LTE|GTE|EQUAL|NOTEQUAL) Argument;
 Parameter -> (TYPE COLON)? IDENTIFIER; 
 Argument -> (STRING|NUMBER|Boolean|FLOAT|IDENTIFIER (ArrayIndexExpr)?);
 FuncCall -> TYPE BROPEN ((Argument COMMA?)+)? BRCLOSE;
-ArrayIndexExpr -> OPENBR (NUMBER|IDENTIFIER|MathExpr) CLOSEBR;
+ArrayIndexExpr -> (GenericTypeIdentifier)? OPENBR (NUMBER|IDENTIFIER|MathExpr) CLOSEBR;
 ObjectCreatetion -> NEW TYPE;
 Boolean -> (TRUE|FALSE);
-MathExpr -> (BROPEN)? OPERATOR (NUMBER|MathExpr|IDENTIFIER) (NUMBER|MathExpr|IDENTIFIER) (BRCLOSE)?;
+MathExpr -> (BROPEN)? OPERATOR (NUMBER|MathExpr|IDENTIFIER (ArrayIndexExpr)?) (NUMBER|MathExpr|IDENTIFIER (ArrayIndexExpr)?) (BRCLOSE)?;
 OPERATOR -> (PLUS|MINUS|MULTI|DIV);
-
+GenericTypeIdentifier -> LT TYPE GT;
 
 
 /* Sample code:

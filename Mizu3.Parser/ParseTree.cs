@@ -229,6 +229,9 @@ namespace Mizu3.Parser
                 case TokenType.OPERATOR:
                     Value = EvalOPERATOR(tree, paramlist);
                     break;
+                case TokenType.GenericTypeIdentifier:
+                    Value = EvalGenericTypeIdentifier(tree, paramlist);
+                    break;
 
                 default:
                     Value = Token.Text;
@@ -358,6 +361,11 @@ namespace Mizu3.Parser
         }
 
         protected virtual object EvalOPERATOR(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalGenericTypeIdentifier(ParseTree tree, params object[] paramlist)
         {
             throw new NotImplementedException();
         }

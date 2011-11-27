@@ -1,10 +1,10 @@
-﻿/*let x = 5;
+﻿let x = 5;
 let y = 6;
 let z = - + x y 2;
 out z;
 out 3.14;
 
-let myArray = [5];
+let myArray = <int>[5];
 myArray[0] = 20;
 myArray[1] = 1;
 myArray[2] = 7;
@@ -15,20 +15,23 @@ out myArray[0];
 out myArray[1];
 out myArray[2];
 out myArray[3]; 
-out myArray[- 5 1]; */
+out myArray[- 5 1];
 
-let fib = fun(n) -> {
-	let x = [+ n 1];
+let fib = fun(int : n) -> {
+	let x = <int>[+ n 1];
 	x[0] = 0;
 	x[1] = 1;
 	
 	let i = 2;
-	while(i != n) {
-		x[i] = x[- i 1] + x[- i 2];
-		i++;
-	}
-	return x;
+	/*while(i != n) {
+		x[i] = + x[- i 1] x[- i 2];
+	}*/
+	return x[n];
 };
+
+let res -> fib(1);
+
+out res;
 
 /*let this = "string";
 while(this != "pie") {
