@@ -193,8 +193,8 @@ namespace Mizu3.Parser
                 case TokenType.TryCatchStatement:
                     Value = EvalTryCatchStatement(tree, paramlist);
                     break;
-                case TokenType.FuncCallStatement:
-                    Value = EvalFuncCallStatement(tree, paramlist);
+                case TokenType.MethodCallStatement:
+                    Value = EvalMethodCallStatement(tree, paramlist);
                     break;
                 case TokenType.WhileStatement:
                     Value = EvalWhileStatement(tree, paramlist);
@@ -214,8 +214,8 @@ namespace Mizu3.Parser
                 case TokenType.NonArrayArgument:
                     Value = EvalNonArrayArgument(tree, paramlist);
                     break;
-                case TokenType.FuncCall:
-                    Value = EvalFuncCall(tree, paramlist);
+                case TokenType.MethodCall:
+                    Value = EvalMethodCall(tree, paramlist);
                     break;
                 case TokenType.ArrayIndexExpr:
                     Value = EvalArrayIndexExpr(tree, paramlist);
@@ -308,7 +308,7 @@ namespace Mizu3.Parser
             throw new NotImplementedException();
         }
 
-        protected virtual object EvalFuncCallStatement(ParseTree tree, params object[] paramlist)
+        protected virtual object EvalMethodCallStatement(ParseTree tree, params object[] paramlist)
         {
             throw new NotImplementedException();
         }
@@ -343,7 +343,7 @@ namespace Mizu3.Parser
             throw new NotImplementedException();
         }
 
-        protected virtual object EvalFuncCall(ParseTree tree, params object[] paramlist)
+        protected virtual object EvalMethodCall(ParseTree tree, params object[] paramlist)
         {
             throw new NotImplementedException();
         }

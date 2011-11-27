@@ -16,6 +16,7 @@ namespace Mizu3.DLR
     using AstUtils = Microsoft.Scripting.Ast.Utils;
     using System.Reflection;
     using System.IO;
+    using System.Diagnostics;
 
     /// <summary>
     /// TODO: Update summary.
@@ -41,6 +42,7 @@ namespace Mizu3.DLR
             }
             return Parse(code, ref main);
         }
+        [DebuggerNonUserCode]
         public static System.Linq.Expressions.Expression[] Parse(string source, ref LambdaBuilder main)
         {
             var statements = new List<Expression>();
@@ -80,7 +82,7 @@ namespace Mizu3.DLR
 
                     }
                 }
-
+               
                 if (errors.Count > 0)
                     throw new AggregateException(errors.ToArray());
                 
@@ -176,7 +178,7 @@ namespace Mizu3.DLR
                             case TokenType.ARROW:
                                 {
                                     #region Function calls
-                                    exp = HandleFuncCall(pn.Nodes[3], ref func, src);
+                                    exp = HandleMethodCall(pn.Nodes[3], ref func, src);
 
                                     ty = exp.Type;
                                     #endregion
@@ -232,10 +234,11 @@ namespace Mizu3.DLR
                                 return Expression.Return(@label);
                         }
                     }
-                case TokenType.FuncCallStatement:
+                case TokenType.MethodCallStatement:
                     {
                         var call = pn.Nodes[0];
-                        var exp = HandleFuncCall(call, ref func, src);
+                        var exp = HandleMethodCall(call, ref func, src);
+
                         return exp;
                         break;
                     }
@@ -372,7 +375,28 @@ namespace Mizu3.DLR
                         {
                             var n = pn.Nodes[1];
                             Type ty = null;
-                            var exp = HandleArgument(n, src, ref func, out ty);
+                            Expression exp = null;
+                            switch (n.Token.Type)
+                            {
+                                case TokenType.Argument:
+                                    {
+                                        exp = HandleArgument(n, src, ref func, out ty);
+                                        break;
+                                    }
+                                case TokenType.RETURN:
+                                    {
+                                        exp = HandleMethodCall(pn.Nodes[2], ref func, src);
+                                        ty = exp.Type;
+                                        break;
+                                    }
+                                case TokenType.MethodCall:
+                                    {
+                                        exp = HandleMethodCall(n, ref func, src);
+                                        ty = exp.Type;
+                                        break;
+                                    }
+                            }
+                            
 
                             writeLine = typeof(Console).GetMethod("WriteLine", new Type[] { ty });
                             return Expression.Call(writeLine, exp);
@@ -413,30 +437,95 @@ namespace Mizu3.DLR
             }
             return null;
         }
-        private static Expression HandleFuncCall(ParseNode value, ref LambdaBuilder func, string src = "")
+        private static Expression HandleMethodCall(ParseNode value, ref LambdaBuilder func, string src = "")
         {
+            value = (value.Token.Type == TokenType.MethodCallStatement ? value.Nodes[0] : value);
             var funccall = value.Nodes[0];
 
-            var name = funccall.Nodes[0];
-            var nam = GetVariable(name, ref func, src, true,false);
-
-            var args = funccall.Nodes.FindAll(it => it.Token.Type == TokenType.Argument);
-
-            if (nam != null)
+            if (value.Nodes.Find(it => it.Token.Type == TokenType.BROPEN) != null)
             {
-                var arglist = new List<Expression>();
-                foreach (var a in args)
-                    arglist.Add(HandleArgument(a, src, ref func));
+                
+                var name = funccall;
+                name = (name.Token.Type == TokenType.IDENTIFIER || name.Token.Type == TokenType.TYPE ? name : name.Nodes[0]);
+                var nam = GetVariable(name, ref func, src, true, false);
 
-                if (arglist.Count > 0)
-                    return Expression.Invoke(nam, arglist.ToArray());
+                if (nam != null)
+                {
+                    //Variable function (anonymous) called?
+                    var args = value.Nodes.FindAll(it => it.Token.Type == TokenType.Argument);
+
+                    var arglist = new List<Expression>();
+                    foreach (var a in args)
+                        arglist.Add(HandleArgument(a, src, ref func));
+
+                    if (arglist.Count > 0)
+                        return Expression.Invoke(nam, arglist.ToArray());
+                    else
+                        return Expression.Invoke(nam);
+                }
                 else
-                    return Expression.Invoke(nam);
+                {
+                    //.NET type method. Eventually, I'll need to switch to the DLR way of doing this.
+                    throw new NotImplementedException("Do not know how to implement access to static methods on the DLR.");
+                }
             }
             else
             {
-                //resolve .net type
-                throw new NotImplementedException(".NET Type Resolution.");
+                //resolve .net type. field or property
+                //throw new NotImplementedException(".NET Type Resolution.");
+
+                var setright = value.Nodes.Find(it => it.Token.Type == TokenType.EQUAL || it.Token.Type == TokenType.ARROW);
+
+                string type = funccall.Token.Text;
+
+                string ident = type.Substring(0,
+                    type.LastIndexOf('.'));
+                string field = type.Substring(type.LastIndexOf('.') + 1);
+
+                var nam = GetVariable(ident, ref func, src, true, false);
+
+                if (nam != null)
+                {
+                    //Property or field from a variable.
+
+                    if (setright == null)
+                        return Expression.PropertyOrField(nam, field); //Get the value
+                    else
+                    {
+                        switch (setright.Token.Type)
+                        {
+                            case TokenType.EQUAL:
+                                {
+                                    //Non functions.
+                                    Expression exp = null;
+                                    var right = value.Nodes[value.Nodes.Count - 1];
+                                    switch (right.Token.Type)
+                                    {
+                                        case TokenType.Argument:
+                                            {
+                                                exp = HandleArgument(right, src, ref func);
+                                                break;
+                                            }
+                                    }
+                                    return Expression.Assign(
+                                        Expression.PropertyOrField(nam, field),
+                                        exp);
+                                }
+                            case TokenType.ARROW:
+                                {
+                                    //functions
+                                    break;
+                                }
+                        }
+                    }
+                }
+                else
+                {
+                    //Static type property/field
+                    throw new NotImplementedException("Do not know how to implement access to static property/fields on the DLR.");
+                }
+                
+
             }
 
             return null;
@@ -676,23 +765,27 @@ namespace Mizu3.DLR
             }
             return Expression.Constant(0);
         }
-        private static DLRASTSyntaxException VariableDoesntExist(ParseNode pn, string src)
+        private static DLRASTSyntaxException VariableDoesntExist(ParseNode pn, string src) { var cord = pn.GetLineAndCol(src); return VariableDoesntExist(pn.Token.Text, src, cord); }
+        private static DLRASTSyntaxException VariableDoesntExist(string pn, string src,LineColObj cord)
         {
-            var cord = pn.GetLineAndCol(src);
             return new DLRASTSyntaxException(
-                                    String.Format("The '{0}' variable doesn't exist in this scope!", pn.Token.Text)
+                                    String.Format("The '{0}' variable doesn't exist in this scope!", pn)
                                     , cord.Line, cord.Col);
         }
         private static ParameterExpression GetVariable(ParseNode pn, ref LambdaBuilder func, string src = "", bool justlocal = false, bool throwErr = true)
         {
-            var exp = func.Locals.Find(it => it.Name == pn.Token.Text);
+            return GetVariable(pn.Token.Text, ref func, src, justlocal, throwErr);
+        }
+        private static ParameterExpression GetVariable(string pn, ref LambdaBuilder func, string src = "", bool justlocal = false, bool throwErr = true)
+        {
+            var exp = func.Locals.Find(it => it.Name == pn);
 
             if (!justlocal)
-                exp = (exp == null ? func.Parameters.Find(it => it.Name == pn.Token.Text) : exp);
+                exp = (exp == null ? func.Parameters.Find(it => it.Name == pn) : exp);
 
             if (exp == null)
                 if (throwErr)
-                    throw VariableDoesntExist(pn, src);
+                    throw VariableDoesntExist(pn, src, new LineColObj() { Line = 0, Col = 0 });
                 else
                     return null;
             else
