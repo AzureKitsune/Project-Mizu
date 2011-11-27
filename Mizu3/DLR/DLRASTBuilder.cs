@@ -214,10 +214,14 @@ namespace Mizu3.DLR
                             {
                                 var id = pn.Nodes[1];
                                 var exp = HandleArgument(id, src, ref func);
-                                return Expression.Return(label, exp);
+
+                                if (exp.Type != @label.Type)
+                                    exp = Expression.Convert(exp, @label.Type);
+
+                                return Expression.Return(@label, exp);
                             }
                             else
-                                return Expression.Return(label);
+                                return Expression.Return(@label);
                         }
                     }
                 case TokenType.FuncCallStatement:
@@ -420,7 +424,7 @@ namespace Mizu3.DLR
                 meth.Body = HandleStmt(stmts.Nodes[0], ref meth, ref locs, "", null);
             else
             {
-                var lab = Expression.Label("Return");
+                var lab = Expression.Label(meth.ReturnType,"Return" + meth.Name);
                 var st = new List<Expression>();
                 foreach (var s in stmts.Nodes)
                 {
@@ -428,9 +432,9 @@ namespace Mizu3.DLR
                     st.Add((val == null ? Expression.Empty() : val));
                 }
 
-                st.Add(Expression.Label(lab));
+                st.Add(Expression.Label(@lab,Expression.Default(@lab.Type)));
                 //st.Add(Expression.Return(lab));
-                meth.Body = Expression.Block(st);
+                meth.Body = Expression.Block(@lab.Type, st);
             }
 
 
