@@ -23,13 +23,14 @@ let fib = fun(int : n) -> {
 	x[1] = 1;
 	
 	let i = 2;
-	/*while(i != n) {
+	while(i <= n) {
 		x[i] = + x[- i 1] x[- i 2];
-	}*/
+		i = + i 1;
+	}
 	return x[n];
 };
 
-let res -> fib(1);
+let res -> fib(2);
 
 out res;
 

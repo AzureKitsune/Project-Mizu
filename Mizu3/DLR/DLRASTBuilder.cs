@@ -246,7 +246,7 @@ namespace Mizu3.DLR
                         var op = HandleNonMathExpr(expr.Nodes[1], lexp, rexp);
 
                         var loopfunc = AstUtils.Lambda(typeof(void), "Loop");
-                        loopfunc.Locals.AddRange(locals);
+                        loopfunc.Parameters.AddRange(locals);
 
 
                         //loopfunc.
@@ -256,7 +256,7 @@ namespace Mizu3.DLR
                         var bodyexp = new List<Expression>();
 
                         var bodylocs = new List<ParameterExpression>();
-                        bodylocs.AddRange(locals);
+                        //bodylocs.AddRange(locals);
 
                         if (body != null)
                             foreach (ParseNode p in body.Nodes)
@@ -266,7 +266,7 @@ namespace Mizu3.DLR
                                     bodyexp.Add(st);
                             }
 
-                        loopfunc.Body = Expression.Block(bodylocs.ToArray(), bodyexp);
+                        loopfunc.Body = Expression.Block(bodyexp);
 
 
 
@@ -279,14 +279,8 @@ namespace Mizu3.DLR
                 case TokenType.VariableReassignmentStatement:
                     {
                         #region Variable Assignment
-                        var vari = func.Locals.Find(it => it.Name == pn.Nodes[0].Token.Text);
-                        if (vari == null)
-                        {
-                            var cord = pn.GetLineAndCol(src);
-                            throw new DLRASTSyntaxException(
-                                String.Format("The '{0}' variable doesn't exist in this scope!", pn.Token.Text)
-                                , cord.Line, cord.Col);
-                        }
+                        var vari = GetVariable(pn.Nodes[0], ref func, src);
+                        
 
                         var oper = pn.Nodes.Find(it => it.Token.Type == TokenType.EQUAL || it.Token.Type == TokenType.ARROW);
 
@@ -300,7 +294,7 @@ namespace Mizu3.DLR
                                     {
                                         //Normal variable assignmenet.
 
-                                        var right = pn.Nodes.Find(it => it.Token.Type == TokenType.Argument || it.Token.Type == TokenType.FuncStatement);
+                                        var right = pn.Nodes.Find(it => it.Token.Type == TokenType.Argument || it.Token.Type == TokenType.FuncStatement || it.Token.Type == TokenType.MathExpr);
 
 
                                         switch (right.Token.Type)
@@ -310,6 +304,9 @@ namespace Mizu3.DLR
                                                      HandleArgument(right, src, ref func));
                                             case TokenType.FuncStatement:
                                                 throw new NotImplementedException("Func statements in variable reassignment statements!");
+                                            case TokenType.MathExpr:
+                                                return Expression.Assign(vari,
+                                                    HandleMathExpr(right, ref func));
                                         }
 
                                         return null; //Satisfy the compiler.
@@ -471,7 +468,7 @@ namespace Mizu3.DLR
         {
 
             ParseNode inner = null;
-            if (value.Token.Type != TokenType.Argument)
+            if (value.Token.Type != TokenType.Argument && value.Token.Type != TokenType.NonArrayArgument)
                 inner = value;
             else
                 inner = value.Nodes[0];

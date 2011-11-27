@@ -211,6 +211,9 @@ namespace Mizu3.Parser
                 case TokenType.Argument:
                     Value = EvalArgument(tree, paramlist);
                     break;
+                case TokenType.NonArrayArgument:
+                    Value = EvalNonArrayArgument(tree, paramlist);
+                    break;
                 case TokenType.FuncCall:
                     Value = EvalFuncCall(tree, paramlist);
                     break;
@@ -331,6 +334,11 @@ namespace Mizu3.Parser
         }
 
         protected virtual object EvalArgument(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalNonArrayArgument(ParseTree tree, params object[] paramlist)
         {
             throw new NotImplementedException();
         }
