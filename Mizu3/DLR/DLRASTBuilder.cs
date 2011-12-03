@@ -466,7 +466,46 @@ namespace Mizu3.DLR
                 else
                 {
                     //.NET type method. Eventually, I'll need to switch to the DLR way of doing this.
-                    throw new NotImplementedException("Do not know how to implement access to static methods on the DLR.");
+                    //
+
+                    string type = name.Token.Text;
+                    string ident = type.Substring(0,
+                    type.LastIndexOf('.'));
+                    string call = type.Substring(type.LastIndexOf('.') + 1);
+
+                    var nam2 = GetVariable(ident, ref func, src, true, false);
+
+                    if (nam2 != null)
+                    {
+                        MethodInfo meth = null;
+
+                        var args = value.Nodes.FindAll(it => it.Token.Type == TokenType.Argument);
+
+                        var arglist = new List<Expression>();
+                        var argtypes = new List<Type>();
+                        foreach (var a in args)
+                        {
+                            var e = HandleArgument(a, src, ref func);
+                            arglist.Add(e);
+                            argtypes.Add(e.Type);
+                        }
+
+                        if (arglist.Count > 0)
+                        {
+                            meth = nam2.Type.GetMethod(call, argtypes.ToArray());
+                            return Expression.Call(nam2, meth, arglist);
+                        }
+                        else
+                        {
+                            meth = nam2.Type.GetMethod(call);
+                            return Expression.Call(nam2, meth);
+                        }
+                    }
+                    else
+                    {
+                        //STATIC method call.
+                        throw new NotImplementedException("Do not know how to implement access to static methods on the DLR.");
+                    }
                 }
             }
             else
