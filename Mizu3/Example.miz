@@ -1,5 +1,4 @@
-﻿
-
-let thisArray = <int>[5];
+﻿let thisArray = <int>[5];
+thisArray[6] = 4;
 /* out thisArray.Length; */
 let ty -> thisArray.GetType();

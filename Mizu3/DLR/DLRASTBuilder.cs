@@ -23,7 +23,7 @@ namespace Mizu3.DLR
     /// </summary>
     public class DLRASTBuilder
     {
-        public static System.Linq.Expressions.Expression[] Parse(System.IO.FileInfo file, ref LambdaBuilder main)
+        public static System.Linq.Expressions.Expression[] Parse(System.IO.FileInfo file, ref LambdaBuilder main, bool generateDebuginfo = false)
         {
             var code = "";
             var str = new StreamReader(file.OpenRead());
@@ -40,20 +40,22 @@ namespace Mizu3.DLR
                 str.Close();
                 str.Dispose();
             }
-            return Parse(code, ref main);
+            SymbolDocumentInfo doc = null;
+            if (generateDebuginfo)
+                doc = Expression.SymbolDocument(file.FullName);
+            return Parse(code, ref main, generateDebuginfo, doc);
         }
         [DebuggerNonUserCode]
-        public static System.Linq.Expressions.Expression[] Parse(string source, ref LambdaBuilder main)
+        public static System.Linq.Expressions.Expression[] Parse(string source, ref LambdaBuilder main, bool generateDebuginfo = false, SymbolDocumentInfo doc = null)
         {
             var statements = new List<Expression>();
             var errors = new List<DLRASTSyntaxException>();
             {
                 var locals = new List<ParameterExpression>();
 
-                string src = source;
                 var scanner = new Scanner();
                 var parser = new Parser(scanner);
-                var tree = parser.Parse(src);
+                var tree = parser.Parse(source);
                 if (tree.Errors.Count > 0)
                 {
                     foreach (ParseError pe in tree.Errors)
@@ -67,9 +69,26 @@ namespace Mizu3.DLR
                     {
                         try
                         {
-                            var x = HandleStmt(pn.Nodes[0], ref main, ref locals, src);
+                            var stmt = pn.Nodes[0];
+                            var x = HandleStmt(stmt, ref main, ref locals, source);
                             if (x != null)
+                            {
+                                if (generateDebuginfo)
+                                {
+                                    if (doc == null)
+                                        throw new ArgumentNullException("doc");
+
+                                    var cord = stmt.GetLineAndCol(source);
+                                    var cordend = stmt.GetLineAndColEnd(source);
+
+                                    statements.Add(
+                                        Expression.DebugInfo(doc, cord.Line, cord.Col + 1, cordend.Line, cordend.Col));
+
+                                    
+                                }
+
                                 statements.Add(x); //TODO: Handle this better
+                            }
                         }
                         catch (DLRASTSyntaxException dex)
                         {
@@ -91,6 +110,7 @@ namespace Mizu3.DLR
         }
         private static Expression HandleStmt(ParseNode pn, ref LambdaBuilder func, ref List<ParameterExpression> locals, string src, LabelTarget label = null)
         {
+            
             switch (pn.Token.Type)
             {
                 case TokenType.LetStatement:

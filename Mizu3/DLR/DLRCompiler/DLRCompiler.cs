@@ -35,7 +35,7 @@ namespace Mizu3.DLR.DLRCompiler
 
             
 
-            var exps = Mizu3.DLR.DLRASTBuilder.Parse(new FileInfo(file), ref main);
+            var exps = Mizu3.DLR.DLRASTBuilder.Parse(new FileInfo(file), ref main,info.IsDebugMode);
             main.Body = Expression.Block(typeof(void),exps);
 
 
