@@ -76,6 +76,7 @@
     <Compile Include="DLR\DLRASTBuilder.cs" />
     <Compile Include="DLR\DLRASTSyntaxException.cs" />
     <Compile Include="DLR\DLRCompiler\DLRCompiler.cs" />
+    <Compile Include="DLR\DLRInterpreter\MizuInterpreter.cs" />
     <Compile Include="DLR\DLRTypeResolver.cs" />
     <Compile Include="DLR\MizuLanguageContext.cs" />
     <Compile Include="Program.cs" />
@@ -115,13 +116,11 @@
       <Install>true</Install>
     </BootstrapperPackage>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="DLR\DLRInterpreter\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties BuildVersion_BuildVersioningStyle="None.None.Increment.None" BuildVersion_UpdateFileVersion="True" BuildVersion_UpdateAssemblyVersion="True" />
+      <UserProperties BuildVersion_UpdateAssemblyVersion="True" BuildVersion_UpdateFileVersion="True" BuildVersion_BuildVersioningStyle="None.None.Increment.None" />
     </VisualStudio>
   </ProjectExtensions>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Mizu3.Compiler;
 using Microsoft.Scripting.Hosting;
+using Mizu3.DLR.DLRInterpreter;
 
 namespace Mizu3
 {
@@ -24,23 +25,14 @@ namespace Mizu3
             info.IsDebugMode = true;
 
 
-            new DLR.DLRCompiler.DLRCompiler().Compile(info);
-            object br = null;
-            
-            
-            /*ScriptRuntimeSetup info = new ScriptRuntimeSetup();
-            
-            // Create runtime
-            ScriptRuntime runtime = new ScriptRuntime(info);
+            /*new DLR.DLRCompiler.DLRCompiler().Compile(info);
+            object br = null; */
 
-            // Load Engine
-            ScriptEngine engine = runtime.GetEngine("miz");
-
-            // Execute command
-            ScriptSource src = engine.CreateScriptSourceFromString("out \"Hello World\";");
-            src.Execute(); */
-
-            // Shutdown engine
+            using (var miz = new MizuInterpreter())
+            {
+                miz.ExecuteCode("let myStr = \"test\"; out myStr;");
+            }
+            Console.ReadLine();
         }
     }
 }

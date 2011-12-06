@@ -82,7 +82,7 @@ namespace Mizu3.DLR
                                     var cordend = stmt.GetLineAndColEnd(source);
 
                                     statements.Add(
-                                        Expression.DebugInfo(doc, cord.Line, cord.Col + 1, cordend.Line, cordend.Col));
+                                        Expression.DebugInfo(doc, cord.Line + 1, cord.Col + 1, cordend.Line, cordend.Col));
 
                                     
                                 }
