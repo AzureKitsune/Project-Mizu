@@ -19,7 +19,7 @@ namespace Mizu3.DLR.DLRInterpreter
     {
         private ScriptRuntimeSetup runset = null;
         private ScriptRuntime runtime = null;
-        private ScriptEngine engine = null;
+        public ScriptEngine Engine { get; private set; }
         private ScriptScope scope = null;
 
         public MizuInterpreter()
@@ -38,14 +38,14 @@ namespace Mizu3.DLR.DLRInterpreter
             runtime = new ScriptRuntime(runset);
 
             // Load Engine
-            engine = runtime.GetEngine("Mizu");
-            scope = engine.CreateScope();
+            Engine = runtime.GetEngine("Mizu");
+            scope = Engine.CreateScope();
         }
         public object ExecuteCode(string code)
         {
             // Execute command
             //ScriptSource src = engine.CreateScriptSourceFromString("out \"Hello World\";", Microsoft.Scripting.SourceCodeKind.InteractiveCode);
-            return engine.Execute(code);
+            return Engine.Execute(code);
 
         }
         #region IDisposable Members
