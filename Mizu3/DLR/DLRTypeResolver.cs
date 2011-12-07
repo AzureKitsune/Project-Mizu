@@ -41,7 +41,7 @@ namespace Mizu3.DLR
             }
             catch (Exception ex)
             {
-                throw new DLRASTSyntaxException("The type '" + type + "' doesn't exist!", 0, 0,ex);
+                throw new DLRASTBuildException("The type '" + type + "' doesn't exist!", 0, 0,ex);
             }
         }
     }

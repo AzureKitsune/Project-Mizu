@@ -49,7 +49,7 @@ namespace Mizu3.DLR
         public static System.Linq.Expressions.Expression[] Parse(string source, ref LambdaBuilder main, bool generateDebuginfo = false, SymbolDocumentInfo doc = null)
         {
             var statements = new List<Expression>();
-            var errors = new List<DLRASTSyntaxException>();
+            var errors = new List<DLRASTBuildException>();
             {
                 var locals = new List<ParameterExpression>();
 
@@ -59,7 +59,7 @@ namespace Mizu3.DLR
                 if (tree.Errors.Count > 0)
                 {
                     foreach (ParseError pe in tree.Errors)
-                        errors.Add(new DLRASTSyntaxException(pe.Message, pe.Line, pe.Column));
+                        errors.Add(new DLRASTBuildException(pe.Message, pe.Line, pe.Column));
                 }
                 else
                 {
@@ -90,13 +90,13 @@ namespace Mizu3.DLR
                                 statements.Add(x); //TODO: Handle this better
                             }
                         }
-                        catch (DLRASTSyntaxException dex)
+                        catch (DLRASTBuildException dex)
                         {
                             errors.Add(dex);
                         }
                         catch (Exception ex)
                         {
-                            errors.Add(new DLRASTSyntaxException("An inner exception has occured.", 0, 0, ex));
+                            errors.Add(new DLRASTBuildException("An inner exception has occured.", 0, 0, ex));
                         }
 
                     }
@@ -124,7 +124,7 @@ namespace Mizu3.DLR
                         if (func.Locals.Find(it => it.Name == nam) != null)
                         {
                             var cord = pn.GetLineAndCol(src);
-                            throw new DLRASTSyntaxException(
+                            throw new DLRASTBuildException(
                                 String.Format("The '{0}' variable already exist in this scope!", nam)
                                 , cord.Line, cord.Col);
                         }
@@ -225,7 +225,7 @@ namespace Mizu3.DLR
                         {
                             //TODO: Make this an error.
                             var cord = pn.GetLineAndCol(src);
-                            throw new DLRASTSyntaxException("Break is invalid in this context.", cord.Line, cord.Col);
+                            throw new DLRASTBuildException("Break is invalid in this context.", cord.Line, cord.Col);
                         }
                         else
                             return Expression.Break(label);
@@ -236,7 +236,7 @@ namespace Mizu3.DLR
                         {
                             //TODO: Make this an error.
                             var cord = pn.GetLineAndCol(src);
-                            throw new DLRASTSyntaxException("Return is invalid in this context.", cord.Line, cord.Col);
+                            throw new DLRASTBuildException("Return is invalid in this context.", cord.Line, cord.Col);
                         }
                         else
                         {
@@ -258,7 +258,6 @@ namespace Mizu3.DLR
                     {
                         var call = pn.Nodes[0];
                         var exp = HandleMethodCall(call, ref func, src);
-
                         return exp;
                         break;
                     }
@@ -326,7 +325,6 @@ namespace Mizu3.DLR
                                         //Normal variable assignmenet.
 
                                         var right = pn.Nodes.Find(it => it.Token.Type == TokenType.Argument || it.Token.Type == TokenType.FuncStatement || it.Token.Type == TokenType.MathExpr);
-
 
                                         switch (right.Token.Type)
                                         {
@@ -824,10 +822,10 @@ namespace Mizu3.DLR
             }
             return Expression.Constant(0);
         }
-        private static DLRASTSyntaxException VariableDoesntExist(ParseNode pn, string src) { var cord = pn.GetLineAndCol(src); return VariableDoesntExist(pn.Token.Text, src, cord); }
-        private static DLRASTSyntaxException VariableDoesntExist(string pn, string src,LineColObj cord)
+        private static DLRASTBuildException VariableDoesntExist(ParseNode pn, string src) { var cord = pn.GetLineAndCol(src); return VariableDoesntExist(pn.Token.Text, src, cord); }
+        private static DLRASTBuildException VariableDoesntExist(string pn, string src,LineColObj cord)
         {
-            return new DLRASTSyntaxException(
+            return new DLRASTBuildException(
                                     String.Format("The '{0}' variable doesn't exist in this scope!", pn)
                                     , cord.Line, cord.Col);
         }

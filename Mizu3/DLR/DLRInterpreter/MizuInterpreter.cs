@@ -45,7 +45,7 @@ namespace Mizu3.DLR.DLRInterpreter
         {
             // Execute command
             //ScriptSource src = engine.CreateScriptSourceFromString("out \"Hello World\";", Microsoft.Scripting.SourceCodeKind.InteractiveCode);
-            return Engine.Execute(code);
+            return Engine.Execute(code, scope);
 
         }
         #region IDisposable Members

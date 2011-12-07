@@ -73,8 +73,11 @@
     <Compile Include="Compiler\CompilerLocalBuilder.cs" />
     <Compile Include="Compiler\CompilerParameters.cs" />
     <Compile Include="Compiler\TypeResolver.cs" />
+    <Compile Include="DLR\Binders\MizuDefaultBinder.cs" />
+    <Compile Include="DLR\Binders\MizuGetMemberBinder.cs" />
+    <Compile Include="DLR\Binders\MizuInvokeMemberBinder.cs" />
     <Compile Include="DLR\DLRASTBuilder.cs" />
-    <Compile Include="DLR\DLRASTSyntaxException.cs" />
+    <Compile Include="DLR\DLRASTBuildException.cs" />
     <Compile Include="DLR\DLRCompiler\DLRCompiler.cs" />
     <Compile Include="DLR\DLRInterpreter\MizuInterpreter.cs" />
     <Compile Include="DLR\DLRTypeResolver.cs" />
@@ -120,7 +123,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties BuildVersion_UpdateAssemblyVersion="True" BuildVersion_UpdateFileVersion="True" BuildVersion_BuildVersioningStyle="None.None.Increment.None" />
+      <UserProperties BuildVersion_BuildVersioningStyle="None.None.Increment.None" BuildVersion_UpdateFileVersion="True" BuildVersion_UpdateAssemblyVersion="True" />
     </VisualStudio>
   </ProjectExtensions>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -14,14 +14,14 @@ namespace Mizu3.DLR
     /// <summary>
     /// TODO: Update summary.
     /// </summary>
-    public class DLRASTSyntaxException : Exception
+    public class DLRASTBuildException : Exception
     {
-        public DLRASTSyntaxException(string msg, int line = 0, int col = 0) : base(msg)
+        public DLRASTBuildException(string msg, int line = 0, int col = 0) : base(msg)
         {
             Line = line;
             Column = col;
         }
-        public DLRASTSyntaxException(string msg, int line = 0, int col = 0,Exception inner = null) : base(msg,inner)
+        public DLRASTBuildException(string msg, int line = 0, int col = 0,Exception inner = null) : base(msg,inner)
         {
             Line = line;
             Column = col;
