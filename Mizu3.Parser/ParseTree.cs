@@ -193,6 +193,9 @@ namespace Mizu3.Parser
                 case TokenType.TryCatchStatement:
                     Value = EvalTryCatchStatement(tree, paramlist);
                     break;
+                case TokenType.TryCatchStatement_CatchBlock:
+                    Value = EvalTryCatchStatement_CatchBlock(tree, paramlist);
+                    break;
                 case TokenType.MethodCallStatement:
                     Value = EvalMethodCallStatement(tree, paramlist);
                     break;
@@ -304,6 +307,11 @@ namespace Mizu3.Parser
         }
 
         protected virtual object EvalTryCatchStatement(ParseTree tree, params object[] paramlist)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected virtual object EvalTryCatchStatement_CatchBlock(ParseTree tree, params object[] paramlist)
         {
             throw new NotImplementedException();
         }

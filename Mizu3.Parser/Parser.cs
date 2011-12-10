@@ -955,6 +955,23 @@ namespace Mizu3.Parser
             node.Nodes.Add(n);
 
             
+            do {
+                ParseTryCatchStatement_CatchBlock(node);
+                tok = scanner.LookAhead(TokenType.CATCH);
+            } while (tok.Type == TokenType.CATCH);
+
+            parent.Token.UpdateRange(node.Token);
+        }
+
+        private void ParseTryCatchStatement_CatchBlock(ParseNode parent)
+        {
+            Token tok;
+            ParseNode n;
+            ParseNode node = parent.CreateNode(scanner.GetToken(TokenType.TryCatchStatement_CatchBlock), "TryCatchStatement_CatchBlock");
+            parent.Nodes.Add(node);
+
+
+            
             tok = scanner.Scan(TokenType.CATCH);
             if (tok.Type != TokenType.CATCH)
                 tree.Errors.Add(new ParseError("Unexpected token '" + tok.Text.Replace("\n", "") + "' found. Expected " + TokenType.CATCH.ToString(), 0x1001, 0, tok.StartPos, tok.StartPos, tok.Length));

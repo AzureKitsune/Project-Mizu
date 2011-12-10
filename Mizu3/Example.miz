@@ -1,4 +1,12 @@
 ﻿let thisArray = <int>[5];
-thisArray[6] = 4;
+thisArray[2] = 4;
 /* out thisArray.Length; */
 let ty -> thisArray.GetType();
+
+try {
+	thisArray[10] = 1;
+}
+catch (System.Exception : ex) {
+	let e -> ex.ToString();
+	out e;
+}

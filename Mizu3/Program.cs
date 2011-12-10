@@ -25,14 +25,14 @@ namespace Mizu3
             info.IsDebugMode = true;
 
 
-            /*new DLR.DLRCompiler.DLRCompiler().Compile(info);
-            object br = null; */
+            new DLR.DLRCompiler.DLRCompiler().Compile(info);
+            object br = null;
 
-            using (var miz = new MizuInterpreter())
+           /* using (var miz = new MizuInterpreter())
             {
                 miz.ExecuteCode("let myStr = \"test\"; out myStr;");
             }
-            Console.ReadLine();
+            Console.ReadLine(); */
         }
     }
 }

@@ -82,7 +82,7 @@ namespace Mizu3.DLR
                                     var cordend = stmt.GetLineAndColEnd(source);
 
                                     statements.Add(
-                                        Expression.DebugInfo(doc, cord.Line + 1, cord.Col + 1, cordend.Line, cordend.Col));
+                                        Expression.DebugInfo(doc, cord.Line, cord.Col + 1, cordend.Line, cordend.Col));
 
                                     
                                 }
@@ -110,7 +110,7 @@ namespace Mizu3.DLR
         }
         private static Expression HandleStmt(ParseNode pn, ref LambdaBuilder func, ref List<ParameterExpression> locals, string src, LabelTarget label = null)
         {
-            
+
             switch (pn.Token.Type)
             {
                 case TokenType.LetStatement:
@@ -285,12 +285,12 @@ namespace Mizu3.DLR
 
                         var bodyexp = new List<Expression>();
 
-                        var bodylocs = new List<ParameterExpression>();
+                        var bodylocs = new List<ParameterExpression>(); //Not needed
                         //bodylocs.AddRange(locals);
 
                         if (body != null)
                             foreach (ParseNode p in body.Nodes)
-                            { 
+                            {
                                 var st = HandleStmt(p.Nodes[0], ref loopfunc, ref bodylocs, src, l);
                                 if (st != null)
                                     bodyexp.Add(st);
@@ -310,7 +310,7 @@ namespace Mizu3.DLR
                     {
                         #region Variable Assignment
                         var vari = GetVariable(pn.Nodes[0], ref func, src);
-                        
+
 
                         var oper = pn.Nodes.Find(it => it.Token.Type == TokenType.EQUAL || it.Token.Type == TokenType.ARROW);
 
@@ -385,6 +385,58 @@ namespace Mizu3.DLR
                         break;
                         #endregion
                     }
+                case TokenType.TryCatchStatement:
+                    {
+                        var statements = pn.Nodes.Find(it => it.Token.Type == TokenType.Statements);
+
+                        var catches = pn.Nodes.FindAll(it => it.Token.Type == TokenType.TryCatchStatement_CatchBlock);
+
+                        var tryfunc = AstUtils.Lambda(typeof(void), "Try");
+                        tryfunc.Parameters.AddRange(locals);
+                        var bodyexp = new List<Expression>();
+                        var bodylocs = new List<ParameterExpression>(); //Not needed
+
+                        foreach (ParseNode p in statements.Nodes)
+                        {
+                            var st = HandleStmt(p.Nodes[0], ref tryfunc, ref bodylocs, src, null);
+                            if (st != null)
+                                bodyexp.Add(st);
+                        }
+
+                        tryfunc.Body = Expression.Block(bodyexp);
+
+                        var catchList = new List<CatchBlock>();
+
+                        foreach (var cpn in catches)
+                        {
+                            var catchfunc = AstUtils.Lambda(tryfunc.ReturnType, "Catch");
+
+                            var par = cpn.Nodes.Find(it => it.Token.Type == TokenType.Parameter);
+                            var parex = HandleParameter(par, ref catchfunc);
+                            //catchfunc.Parameters.Add(parex);
+
+                            catchfunc.Parameters.AddRange(locals);
+                            var catchexp = new List<Expression>();
+                            var stmt = cpn.Nodes.Find(it => it.Token.Type == TokenType.Statements);
+                            foreach (ParseNode p in stmt.Nodes)
+                            {
+                                var st = HandleStmt(p.Nodes[0], ref catchfunc, ref bodylocs, src, null);
+                                if (st != null)
+                                    catchexp.Add(st);
+                            }
+                            catchfunc.Body = Expression.Block(catchexp);
+
+                            
+                            
+
+                            var block = Expression.Catch(parex, catchfunc.MakeLambda());
+                            catchList.Add(block);
+                        }
+
+                        return Expression.TryCatch(tryfunc.MakeLambda(), catchList.ToArray());
+                        
+                        break;
+                    }
                 case TokenType.OutStatement:
                     {
                         MethodInfo writeLine = null;
@@ -414,7 +466,7 @@ namespace Mizu3.DLR
                                         break;
                                     }
                             }
-                            
+
 
                             writeLine = typeof(Console).GetMethod("WriteLine", new Type[] { ty });
                             return Expression.Call(writeLine, exp);
@@ -491,7 +543,7 @@ namespace Mizu3.DLR
                     type.LastIndexOf('.'));
                     string call = type.Substring(type.LastIndexOf('.') + 1);
 
-                    var nam2 = GetVariable(ident, ref func, src, true, false);
+                    var nam2 = GetVariable(ident, ref func, src, false, false);
 
                     if (nam2 != null)
                     {
