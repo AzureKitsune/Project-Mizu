@@ -479,8 +479,9 @@ namespace Mizu3.DLR
                             }
                             else
                             {
-                                writeLine = typeof(TextWriter).GetMethod("WriteLine", new Type[] { ty });
-                                return Expression.Call(Expression.Constant(MizuLanguageContext.Instance.DomainManager.SharedIO.OutputWriter), writeLine, exp);
+                                writeLine = typeof(TextWriter).GetMethod("WriteLine", new Type[] { typeof(object) });
+
+                                return Expression.Call(Expression.Constant(MizuLanguageContext.Instance.DomainManager.SharedIO.OutputWriter), writeLine, new Expression[] { (Expression)((ConstantExpression)exp).Value });
                             }
                         }
                         else
@@ -768,7 +769,7 @@ namespace Mizu3.DLR
 
                             exp = GetVariable(inner, ref func, src, false, true, iscompiler);
 
-                            ty = exp.Type;
+                            ty = ((ConstantExpression)((ConstantExpression)exp).Value).Type;
                         }
                         else
                         {
@@ -925,7 +926,9 @@ namespace Mizu3.DLR
             }
             else
             {
-                return Expression.Constant(MizuLanguageContext.Instance.ScopeGetVariable(MizuLanguageContext.GlobalScope, pn));
+                dynamic val = MizuLanguageContext.Instance.ScopeGetVariable(MizuLanguageContext.GlobalScope, pn);
+                var typ = val.Type;
+                return Expression.Constant(val);
             }
 
         }
