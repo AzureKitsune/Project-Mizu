@@ -472,14 +472,30 @@ namespace Mizu3.DLR
                                     }
                             }
 
-
-                            writeLine = typeof(Console).GetMethod("WriteLine", new Type[] { ty });
-                            return Expression.Call(writeLine, exp);
+                            if (iscompiler)
+                            {
+                                writeLine = typeof(Console).GetMethod("WriteLine", new Type[] { ty });
+                                return Expression.Call(writeLine, exp);
+                            }
+                            else
+                            {
+                                writeLine = typeof(TextWriter).GetMethod("WriteLine", new Type[] { ty });
+                                return Expression.Call(Expression.Constant(MizuLanguageContext.Instance.DomainManager.SharedIO.OutputWriter), writeLine, exp);
+                            }
                         }
                         else
                         {
-                            writeLine = typeof(Console).GetMethod("WriteLine", new Type[] { });
-                            return Expression.Call(writeLine);
+                            if (iscompiler)
+                            {
+                                writeLine = typeof(Console).GetMethod("WriteLine", new Type[] { });
+                                return Expression.Call(writeLine);
+                            }
+                            else
+                            {
+                                writeLine = typeof(TextWriter).GetMethod("WriteLine", new Type[] { });
+
+                                return Expression.Call(Expression.Constant(MizuLanguageContext.Instance.DomainManager.SharedIO.OutputWriter), writeLine);
+                            }
                         }
                     }
 
