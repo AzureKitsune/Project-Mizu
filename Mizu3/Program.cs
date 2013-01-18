@@ -34,6 +34,7 @@ namespace Mizu3
                 while(true)
                     try
                     {
+                        Console.Write(">>> ");
                         Console.WriteLine(
                             miz.ExecuteCode(
                                 Console.ReadLine()));

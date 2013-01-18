@@ -36,10 +36,13 @@ namespace Mizu3.DLR.DLRInterpreter
 
             // Create runtime
             runtime = new ScriptRuntime(runset);
-            
+
             // Load Engine
             Engine = runtime.GetEngine("Mizu");
-            scope = Engine.CreateScope();
+            scope = Engine.CreateScope(MizuLanguageContext.GlobalScope);
+
+            if (MizuLanguageContext.GlobalScriptScope == null)
+                MizuLanguageContext.GlobalScriptScope = scope;
         }
         public object ExecuteCode(string code)
         {

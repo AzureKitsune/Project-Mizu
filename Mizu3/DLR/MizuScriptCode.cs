@@ -13,6 +13,7 @@ namespace Mizu3.DLR
     using Microsoft.Scripting;
     using System.Linq.Expressions;
     using Microsoft.Scripting.Ast;
+    using Microsoft.Scripting.Runtime;
 
     /// <summary>
     /// TODO: Update summary.
@@ -20,18 +21,24 @@ namespace Mizu3.DLR
     public class MizuScriptCode : ScriptCode
     {
         internal SourceUnit Unit {get;set;}
+        internal LambdaExpression Exp { get; set; }
         internal LambdaBuilder Builder { get; set; }
-        public MizuScriptCode(LambdaBuilder build, SourceUnit sourceUnit)
+        public MizuScriptCode(LambdaExpression exp, SourceUnit sourceUnit, LambdaBuilder build)
             : base(sourceUnit)
         {
             Unit = sourceUnit;
+            Exp = exp;
             Builder = build;
         }
         public override object Run(Microsoft.Scripting.Runtime.Scope scope)
         {
-            Builder.
-            var del = Expression.
-            return del.DynamicInvoke(scope, null);
+            var del = Exp.Compile();
+            return del.DynamicInvoke(scope);
+        }
+
+        public override object Run()
+        {
+            return this.Run(new Scope());
         }
     }
 }

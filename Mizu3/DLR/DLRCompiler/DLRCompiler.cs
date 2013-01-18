@@ -31,30 +31,30 @@ namespace Mizu3.DLR.DLRCompiler
             var gen = new AssemblyGen(new System.Reflection.AssemblyName(info.AssemblyName), new FileInfo(info.OutputFilename).DirectoryName, ".exe", info.IsDebugMode);
             var file = info.SourceCodeFiles[0];
 
-            var main =  AstUtils.Lambda(typeof(void),"Main");
-
-            
-
-            var exps = Mizu3.DLR.DLRASTBuilder.Parse(new FileInfo(file), ref main,info.IsDebugMode);
-            main.Body = Expression.Block(typeof(void),exps);
+            var main = AstUtils.Lambda(typeof(void), "Main");
 
 
-            var type= gen.DefinePublicType("Application",typeof(Object), true);
+
+            var exps = Mizu3.DLR.DLRASTBuilder.Parse(new FileInfo(file), ref main, true, info.IsDebugMode);
+            main.Body = Expression.Block(typeof(void), exps);
+
+
+            var type = gen.DefinePublicType("Application", typeof(Object), true);
             var meth = type.DefineMethod("Main", System.Reflection.MethodAttributes.Public | System.Reflection.MethodAttributes.Static);
             Microsoft.Scripting.Generation.CompilerHelpers.CompileToMethod(main.MakeLambda(), meth, info.IsDebugMode); ;//CompileToMethod(meth, false);
             type.CreateType();
             gen.AssemblyBuilder.SetEntryPoint(meth);
             gen.SaveAssembly();
-            
+
         }
         private void PushError(string msg, int line, int col)
         {
-           //TODO: Implement
+            //TODO: Implement
         }
-        private void PushWarning (string msg,int line, int col)
+        private void PushWarning(string msg, int line, int col)
         {
             //TODO: Implement
         }
-        
+
     }
 }

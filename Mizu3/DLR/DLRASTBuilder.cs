@@ -17,13 +17,14 @@ namespace Mizu3.DLR
     using System.Reflection;
     using System.IO;
     using System.Diagnostics;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// TODO: Update summary.
     /// </summary>
     public class DLRASTBuilder
     {
-        public static System.Linq.Expressions.Expression[] Parse(System.IO.FileInfo file, ref LambdaBuilder main, bool generateDebuginfo = false)
+        public static System.Linq.Expressions.Expression[] Parse(System.IO.FileInfo file, ref LambdaBuilder main, bool iscompiler = false, bool generateDebuginfo = false)
         {
             var code = "";
             var str = new StreamReader(file.OpenRead());
@@ -43,10 +44,10 @@ namespace Mizu3.DLR
             SymbolDocumentInfo doc = null;
             if (generateDebuginfo)
                 doc = Expression.SymbolDocument(file.FullName);
-            return Parse(code, ref main, generateDebuginfo, doc);
+            return Parse(code, ref main, generateDebuginfo, iscompiler, doc);
         }
         [DebuggerNonUserCode]
-        public static System.Linq.Expressions.Expression[] Parse(string source, ref LambdaBuilder main, bool generateDebuginfo = false, SymbolDocumentInfo doc = null)
+        public static System.Linq.Expressions.Expression[] Parse(string source, ref LambdaBuilder main, bool generateDebuginfo = false, bool iscompiler = false, SymbolDocumentInfo doc = null)
         {
             var statements = new List<Expression>();
             var errors = new List<DLRASTBuildException>();
@@ -70,7 +71,7 @@ namespace Mizu3.DLR
                         try
                         {
                             var stmt = pn.Nodes[0];
-                            var x = HandleStmt(stmt, ref main, ref locals, source);
+                            var x = HandleStmt(stmt, ref main, ref locals, source, null, iscompiler);
                             if (x != null)
                             {
                                 if (generateDebuginfo)
@@ -84,7 +85,7 @@ namespace Mizu3.DLR
                                     statements.Add(
                                         Expression.DebugInfo(doc, cord.Line, cord.Col + 1, cordend.Line, cordend.Col));
 
-                                    
+
                                 }
 
                                 statements.Add(x); //TODO: Handle this better
@@ -101,14 +102,14 @@ namespace Mizu3.DLR
 
                     }
                 }
-               
+
                 if (errors.Count > 0)
                     throw new AggregateException(errors.ToArray());
-                
+
                 return statements.ToArray();
             }
         }
-        private static Expression HandleStmt(ParseNode pn, ref LambdaBuilder func, ref List<ParameterExpression> locals, string src, LabelTarget label = null)
+        private static Expression HandleStmt(ParseNode pn, ref LambdaBuilder func, ref List<ParameterExpression> locals, string src, LabelTarget label = null, bool iscompiler = true)
         {
 
             switch (pn.Token.Type)
@@ -143,7 +144,7 @@ namespace Mizu3.DLR
                                     {
                                         case TokenType.Argument:
                                             {
-                                                exp = HandleArgument(value, src, ref func, out ty);
+                                                exp = HandleArgument(value, src, ref func, out ty, iscompiler);
                                             }
                                             break;
                                         case TokenType.MathExpr:
@@ -198,7 +199,7 @@ namespace Mizu3.DLR
                             case TokenType.ARROW:
                                 {
                                     #region Function calls
-                                    exp = HandleMethodCall(pn.Nodes[3], ref func, src);
+                                    exp = HandleMethodCall(pn.Nodes[3], ref func, src, iscompiler);
 
                                     ty = exp.Type;
                                     #endregion
@@ -212,9 +213,13 @@ namespace Mizu3.DLR
 
                         locals.Add(var);
 
-
-
-                        return Expression.Assign(var, exp);
+                        if (iscompiler)
+                            return Expression.Assign(var, exp);
+                        else
+                        {
+                            MizuLanguageContext.Instance.ScopeSetVariable(MizuLanguageContext.GlobalScope, nam, exp);
+                            return Expression.Default(typeof(object));
+                        }
 
                         #endregion
                     }
@@ -257,7 +262,7 @@ namespace Mizu3.DLR
                 case TokenType.MethodCallStatement:
                     {
                         var call = pn.Nodes[0];
-                        var exp = HandleMethodCall(call, ref func, src);
+                        var exp = HandleMethodCall(call, ref func, src, iscompiler);
                         return exp;
                         break;
                     }
@@ -426,15 +431,15 @@ namespace Mizu3.DLR
                             }
                             catchfunc.Body = Expression.Block(catchexp);
 
-                            
-                            
+
+
 
                             var block = Expression.Catch(parex, catchfunc.MakeLambda());
                             catchList.Add(block);
                         }
 
                         return Expression.TryCatch(tryfunc.MakeLambda(), catchList.ToArray());
-                        
+
                         break;
                     }
                 case TokenType.OutStatement:
@@ -450,18 +455,18 @@ namespace Mizu3.DLR
                             {
                                 case TokenType.Argument:
                                     {
-                                        exp = HandleArgument(n, src, ref func, out ty);
+                                        exp = HandleArgument(n, src, ref func, out ty, iscompiler);
                                         break;
                                     }
                                 case TokenType.RETURN:
                                     {
-                                        exp = HandleMethodCall(pn.Nodes[2], ref func, src);
+                                        exp = HandleMethodCall(pn.Nodes[2], ref func, src, iscompiler);
                                         ty = exp.Type;
                                         break;
                                     }
                                 case TokenType.MethodCall:
                                     {
-                                        exp = HandleMethodCall(n, ref func, src);
+                                        exp = HandleMethodCall(n, ref func, src, iscompiler);
                                         ty = exp.Type;
                                         break;
                                     }
@@ -492,7 +497,7 @@ namespace Mizu3.DLR
                     value.Nodes.Find(it => it.Token.Type == TokenType.OPENBR));
             var r = value.Nodes.IndexOf(
                     value.Nodes.Find(it => it.Token.Type == TokenType.CLOSEBR));
-            var parms = value.Nodes.GetRange(l + 1,r - l -1);
+            var parms = value.Nodes.GetRange(l + 1, r - l - 1);
 
             if (parms.Count != 3)
             {
@@ -507,14 +512,14 @@ namespace Mizu3.DLR
             }
             return null;
         }
-        private static Expression HandleMethodCall(ParseNode value, ref LambdaBuilder func, string src = "")
+        private static Expression HandleMethodCall(ParseNode value, ref LambdaBuilder func, string src = "", bool iscompiler = true)
         {
             value = (value.Token.Type == TokenType.MethodCallStatement ? value.Nodes[0] : value);
             var funccall = value.Nodes[0];
 
             if (value.Nodes.Find(it => it.Token.Type == TokenType.BROPEN) != null)
             {
-                
+
                 var name = funccall;
                 name = (name.Token.Type == TokenType.IDENTIFIER || name.Token.Type == TokenType.TYPE ? name : name.Nodes[0]);
                 var nam = GetVariable(name, ref func, src, true, false);
@@ -540,10 +545,10 @@ namespace Mizu3.DLR
 
                     string type = name.Token.Text;
                     string ident = type.Substring(0,
-                    type.LastIndexOf('.'));
+                        type.LastIndexOf('.'));
                     string call = type.Substring(type.LastIndexOf('.') + 1);
 
-                    var nam2 = GetVariable(ident, ref func, src, false, false);
+                    var nam2 = GetVariable(ident, ref func, src, false, false, iscompiler);
 
                     if (nam2 != null)
                     {
@@ -591,7 +596,7 @@ namespace Mizu3.DLR
                     type.LastIndexOf('.'));
                 string field = type.Substring(type.LastIndexOf('.') + 1);
 
-                var nam = GetVariable(ident, ref func, src, true, false);
+                var nam = GetVariable(ident, ref func, src, true, false, iscompiler);
 
                 if (nam != null)
                 {
@@ -633,7 +638,7 @@ namespace Mizu3.DLR
                     //Static type property/field
                     throw new NotImplementedException("Do not know how to implement access to static property/fields on the DLR.");
                 }
-                
+
 
             }
 
@@ -657,7 +662,7 @@ namespace Mizu3.DLR
                 meth.Body = HandleStmt(stmts.Nodes[0], ref meth, ref locs, "", null);
             else
             {
-                var lab = Expression.Label(meth.ReturnType,"Return" + meth.Name);
+                var lab = Expression.Label(meth.ReturnType, "Return" + meth.Name);
                 var st = new List<Expression>();
                 foreach (var s in stmts.Nodes)
                 {
@@ -665,7 +670,7 @@ namespace Mizu3.DLR
                     st.Add((val == null ? Expression.Empty() : val));
                 }
 
-                st.Add(Expression.Label(@lab,Expression.Default(@lab.Type)));
+                st.Add(Expression.Label(@lab, Expression.Default(@lab.Type)));
                 //st.Add(Expression.Return(lab));
                 meth.Body = Expression.Block(@lab.Type, st);
             }
@@ -676,10 +681,10 @@ namespace Mizu3.DLR
         private static ParameterExpression HandleParameter(ParseNode value, ref LambdaBuilder func)
         {
             var type = value.Nodes.Find(it => it.Token.Type == TokenType.TYPE);
-            var parname =  value.Nodes.Find(it => it.Token.Type == TokenType.IDENTIFIER);
+            var parname = value.Nodes.Find(it => it.Token.Type == TokenType.IDENTIFIER);
             if (type == null)
                 return func.Parameter(
-                    typeof(object), 
+                    typeof(object),
                     parname.Token.Text);
             else
                 return func.Parameter(
@@ -699,8 +704,8 @@ namespace Mizu3.DLR
             }
             return null;
         }
-        private static Expression HandleArgument(ParseNode value, string src, ref LambdaBuilder func) { Type t = null; return HandleArgument(value, src, ref func, out t); }
-        private static Expression HandleArgument(ParseNode value, string src, ref LambdaBuilder func, out Type ty)
+        private static Expression HandleArgument(ParseNode value, string src, ref LambdaBuilder func, bool iscompiler = true) { Type t = null; return HandleArgument(value, src, ref func, out t, iscompiler); }
+        private static Expression HandleArgument(ParseNode value, string src, ref LambdaBuilder func, out Type ty, bool iscompiler = true)
         {
 
             ParseNode inner = null;
@@ -745,7 +750,7 @@ namespace Mizu3.DLR
                         {
                             //If not an array value.
 
-                            exp = GetVariable(inner, ref func, src);
+                            exp = GetVariable(inner, ref func, src, false, true, iscompiler);
 
                             ty = exp.Type;
                         }
@@ -758,7 +763,7 @@ namespace Mizu3.DLR
                             var indexer = HandleArgument(
                                 index.Nodes[1],
                                 src, ref func);
-                            exp = Expression.ArrayIndex(vari, 
+                            exp = Expression.ArrayIndex(vari,
                                    indexer);
 
                             ty = exp.Type;
@@ -875,30 +880,38 @@ namespace Mizu3.DLR
             return Expression.Constant(0);
         }
         private static DLRASTBuildException VariableDoesntExist(ParseNode pn, string src) { var cord = pn.GetLineAndCol(src); return VariableDoesntExist(pn.Token.Text, src, cord); }
-        private static DLRASTBuildException VariableDoesntExist(string pn, string src,LineColObj cord)
+        private static DLRASTBuildException VariableDoesntExist(string pn, string src, LineColObj cord)
         {
             return new DLRASTBuildException(
                                     String.Format("The '{0}' variable doesn't exist in this scope!", pn)
                                     , cord.Line, cord.Col);
         }
-        private static ParameterExpression GetVariable(ParseNode pn, ref LambdaBuilder func, string src = "", bool justlocal = false, bool throwErr = true)
+        private static Expression GetVariable(ParseNode pn, ref LambdaBuilder func, string src = "", bool justlocal = false, bool throwErr = true, bool iscompiler = true)
         {
-            return GetVariable(pn.Token.Text, ref func, src, justlocal, throwErr);
+            return GetVariable(pn.Token.Text, ref func, src, justlocal, throwErr, iscompiler);
         }
-        private static ParameterExpression GetVariable(string pn, ref LambdaBuilder func, string src = "", bool justlocal = false, bool throwErr = true)
+        private static Expression GetVariable(string pn, ref LambdaBuilder func, string src = "", bool justlocal = false, bool throwErr = true, bool iscompiler = true)
         {
-            var exp = func.Locals.Find(it => it.Name == pn);
+            if (iscompiler)
+            {
+                var exp = func.Locals.Find(it => it.Name == pn);
 
-            if (!justlocal)
-                exp = (exp == null ? func.Parameters.Find(it => it.Name == pn) : exp);
+                if (!justlocal)
+                    exp = (exp == null ? func.Parameters.Find(it => it.Name == pn) : exp);
 
-            if (exp == null)
-                if (throwErr)
-                    throw VariableDoesntExist(pn, src, new LineColObj() { Line = 0, Col = 0 });
+                if (exp == null)
+                    if (throwErr)
+                        throw VariableDoesntExist(pn, src, new LineColObj() { Line = 0, Col = 0 });
+                    else
+                        return null;
                 else
-                    return null;
+                    return exp;
+            }
             else
-                return exp;
+            {
+                return Expression.Constant(MizuLanguageContext.Instance.ScopeGetVariable(MizuLanguageContext.GlobalScope, pn));
+            }
+
         }
     }
 }
